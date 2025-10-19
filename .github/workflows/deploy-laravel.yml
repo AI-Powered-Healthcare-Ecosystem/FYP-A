@@ -5,8 +5,9 @@ on:
     branches:
       - main
     paths:
-      - 'backend/**'
-      - '!backend/fastapi/**'  # Exclude FastAPI directory
+      - 'Paitent Management System/backend/**'
+      - 'Paitent Management System/frontend/**'
+      - '!Paitent Management System/backend/fastapi/**'  # Exclude FastAPI directory
       - '.github/workflows/deploy-laravel.yml'  # Include workflow file itself
   workflow_dispatch:  # Keep manual trigger option
 
@@ -33,18 +34,18 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: 'Paitent Management System/frontend/package-lock.json'
 
       # Install Laravel dependencies
       - name: Install Laravel dependencies
         run: |
-          cd backend
+          cd "Paitent Management System/backend"
           composer install --no-interaction --prefer-dist --optimize-autoloader
 
       # Install frontend dependencies and build directly into backend/public
       - name: Build frontend
         run: |
-          cd frontend
+          cd "Paitent Management System/frontend"
           npm install
           npm run build
           ls -l dist/ || { echo "dist/ directory missing"; exit 1; }
@@ -53,22 +54,20 @@ jobs:
 
       - name: Copy frontend build to Laravel public folder
         run: |
-          cd backend/public
-          mv index.php ../index.php.tmp 2>/dev/null || true
-          mv .htaccess ../.htaccess.tmp 2>/dev/null || true
-          cd ../..
-          rm -rf backend/public/*
-          cp -r frontend/dist/. backend/public/ || { echo "Copy failed"; exit 1; }
-          mv backend/index.php.tmp backend/public/index.php 2>/dev/null || true
-          mv backend/.htaccess.tmp backend/public/.htaccess 2>/dev/null || true
-          ls -l backend/public/
-          ls -l backend/public/assets/
-          cat backend/public/index.html || { echo "index.html missing after copy"; exit 1; }
+          mv "Paitent Management System/backend/public/index.php" "Paitent Management System/backend/index.php.tmp" 2>/dev/null || true
+          mv "Paitent Management System/backend/public/.htaccess" "Paitent Management System/backend/.htaccess.tmp" 2>/dev/null || true
+          rm -rf "Paitent Management System/backend/public"/*
+          cp -r "Paitent Management System/frontend/dist/." "Paitent Management System/backend/public/" || { echo "Copy failed"; exit 1; }
+          mv "Paitent Management System/backend/index.php.tmp" "Paitent Management System/backend/public/index.php" 2>/dev/null || true
+          mv "Paitent Management System/backend/.htaccess.tmp" "Paitent Management System/backend/public/.htaccess" 2>/dev/null || true
+          ls -l "Paitent Management System/backend/public/"
+          ls -l "Paitent Management System/backend/public/assets/"
+          cat "Paitent Management System/backend/public/index.html" || { echo "index.html missing after copy"; exit 1; }
 
       # Configure Laravel environment
       - name: Configure Laravel environment
         run: |
-          cd backend
+          cd "Paitent Management System/backend"
           echo "APP_NAME=Laravel" > .env
           echo "APP_ENV=production" >> .env
           echo "APP_URL=https://104384876laravel-cwh4axg4d4h5f0ha.southeastasia-01.azurewebsites.net" >> .env
@@ -78,13 +77,12 @@ jobs:
           echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "FASTAPI_URL=https://104384876fastapi-brbbdqb0g7b9hrb4.southeastasia-01.azurewebsites.net" >> .env
           echo "DB_SSL_CA=/home/site/wwwroot/storage/certs/DigiCertGlobalRootCA.crt.pem" >> .env
           echo "APP_KEY=${{ secrets.APP_KEY }}" >> .env  
 
       - name: Configure document root
         run: |
-          cd backend
+          cd "Paitent Management System/backend"
           chmod +x startup.sh
           echo "STARTUP_COMMAND=/home/site/wwwroot/startup.sh" >> .env
 
@@ -95,4 +93,4 @@ jobs:
           app-name: 104384876laravel
           slot-name: production
           publish-profile: ${{ secrets.AZURE_LARAVEL_PUBLISH_PROFILE }}
-          package: ./backend
+          package: './Paitent Management System/backend'
