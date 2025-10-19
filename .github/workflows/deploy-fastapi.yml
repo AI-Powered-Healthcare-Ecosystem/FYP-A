@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    paths:
+      - 'Paitent Management System/backend/fastapi/**'
+      - '.github/workflows/deploy-fastapi.yml'
 
 jobs:
   build:
@@ -26,8 +29,8 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: backend/fastapi/Dockerfile
+          context: 'Paitent Management System'
+          file: 'Paitent Management System/backend/fastapi/Dockerfile'
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
