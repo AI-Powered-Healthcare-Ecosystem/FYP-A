@@ -14,7 +14,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install deps first for layer caching
-COPY requirements.txt /app/requirements.txt
+COPY backend/fastapi/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # Optional: pre-warm the embedding model to avoid runtime downloads (can remove if not needed)
