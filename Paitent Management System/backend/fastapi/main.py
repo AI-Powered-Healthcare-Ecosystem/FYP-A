@@ -1,6 +1,7 @@
 import os
 import mysql.connector
 from mysql.connector import Error
+import logging
 
 # ---- MySQL connection helper ----
 def _get_mysql_conn():
@@ -15,7 +16,7 @@ def _get_mysql_conn():
         )
         return conn
     except Error as e:
-        print(f"MySQL connection error: {e}")
+        logging.debug(f"MySQL connection error: {e}")
         return None
 
 # ---- Read from Laravel patients table ----
@@ -97,6 +98,10 @@ import numpy as np
 import pandas as pd
 
 load_dotenv()
+
+# Configure logging level via env (default INFO)
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
 
 # Initialize FastAPI
 app = FastAPI()

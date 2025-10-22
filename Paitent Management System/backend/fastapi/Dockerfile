@@ -14,7 +14,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install deps first for layer caching
-COPY backend/fastapi/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # Optional: pre-warm the embedding model to avoid runtime downloads (can remove if not needed)
@@ -23,7 +23,7 @@ ENV HF_HOME=/app/.cache/huggingface
 # RUN python - <<'PY'\nfrom sentence_transformers import SentenceTransformer\nSentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')\nPY
 
 # Copy app
-COPY backend/fastapi/ /app
+COPY . /app
 
 # Expose expected port
 ENV PORT=8000
