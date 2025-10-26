@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useUser } from './UserContext'; // 1. import context
-import { BarChart3, ShieldCheck, Users, UserPlus, Activity, LineChart, Stethoscope, Settings, LogOut, MessageCircle, User as UserIcon, PanelLeft, PanelLeftClose, Bell } from 'lucide-react';
+import { BarChart3, ShieldCheck, Users, UserPlus, Activity, LineChart, Stethoscope, Settings, LogOut, MessageCircle, User as UserIcon, PanelLeft, PanelLeftClose, Bell, Calendar } from 'lucide-react';
 
 function Layout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -53,6 +53,9 @@ function Layout({ children }) {
               <h3 className={`mt-3 px-2 py-2 text-white/80 text-[11px] font-semibold uppercase tracking-wide transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>Functions</h3>
               <ul className={`space-y-1 ${!isOpen ? 'flex flex-col items-center' : ''}`}>
                 <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '80ms' : '0ms' }}>
+                  <NavItem to="/appointments" icon={<Calendar size={18} />} label="Appointments" isOpen={isOpen} />
+                </li>
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '100ms' : '0ms' }}>
                   <NavItem to="/predict" icon={<LineChart size={18} />} label="Risk Prediction" isOpen={isOpen} />
                 </li>
                 <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '100ms' : '0ms' }}>
