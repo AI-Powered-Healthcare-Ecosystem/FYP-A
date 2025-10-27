@@ -38,7 +38,10 @@ const ManageUsers = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${laravelUrl}/api/admin/users`);
+        const res = await fetch(`${laravelUrl}/api/admin/users`, {
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
         const data = await res.json();
         setUsers(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -57,6 +60,8 @@ const ManageUsers = () => {
     try {
       const res = await fetch(`${laravelUrl}/api/admin/users/${id}`, {
         method: "DELETE",
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
       });
 
       if (!res.ok) throw new Error("Failed to delete user");

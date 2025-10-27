@@ -66,14 +66,23 @@ const RiskDashboard = () => {
     patientsApi.getAll().then((data) => {
       setPatients(data);
       setFiltered(data);
-      runPredictions(data); // Trigger prediction API
+      runPredictions(data, false); // Trigger prediction API (not forced)
     });
   }, []);
 
-  const runPredictions = (data) => {
+  const runPredictions = (data, force = false) => {
     // Reset results and fire all requests in parallel; update as each completes
     setRiskResults({});
     data.forEach((patient) => {
+      // Prefer cached DB value unless forcing recompute
+      const cachedVal = parseFloat(patient.last_risk_score);
+      if (!force && Number.isFinite(cachedVal)) {
+        const value = cachedVal.toFixed(2);
+        const label = patient.last_risk_label || mapNumericRisk(cachedVal);
+        setRiskResults((prev) => ({ ...prev, [patient.id]: { value, label } }));
+        return; // skip FastAPI call
+      }
+
       const features = [
         parseFloat(patient.hba1c_1st_visit),
         parseFloat(patient.hba1c_2nd_visit),
@@ -86,7 +95,7 @@ const RiskDashboard = () => {
       if (features.some((val) => isNaN(val))) return; // skip invalid
 
       fastApiClient
-        .post('/risk-dashboard?force=false', {
+        .post(`/risk-dashboard?force=${force ? 'true' : 'false'}`, {
           features,
           patient_id: Number(patient.id),
           model_version: 'risk_v1',
@@ -232,7 +241,7 @@ const RiskDashboard = () => {
                 />
               </div>
               <button
-                onClick={() => runPredictions(patients)}
+                onClick={() => runPredictions(patients, true)}
                 className="inline-flex items-center justify-center gap-1.5 text-sm px-3 py-2 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                 type="button"
               >

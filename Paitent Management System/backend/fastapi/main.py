@@ -62,16 +62,24 @@ def save_latest_to_mysql(patient_id: int, value: float, label: str, model_versio
         if conn is None:
             return
         cursor = conn.cursor()
+        # Read current HbA1c (2nd) to compute reduction_a_2_3
+        cursor.execute("SELECT hba1c_2nd_visit FROM patients WHERE id = %s", (int(patient_id),))
+        row = cursor.fetchone()
+        hba1c2 = float(row[0]) if row and row[0] is not None else None
+        reduction_a_2_3 = (hba1c2 - float(value)) if hba1c2 is not None else None
+
         cursor.execute(
             """
             UPDATE patients
             SET last_risk_score = %s,
                 last_risk_label = %s,
                 risk_model_version = %s,
-                last_predicted_at = NOW()
+                last_predicted_at = NOW(),
+                hba1c_3rd_visit = %s,
+                reduction_a_2_3 = %s
             WHERE id = %s
             """,
-            (float(value), str(label), str(model_version), int(patient_id))
+            (float(value), str(label), str(model_version), float(value), reduction_a_2_3, int(patient_id))
         )
         conn.commit()
         cursor.close()

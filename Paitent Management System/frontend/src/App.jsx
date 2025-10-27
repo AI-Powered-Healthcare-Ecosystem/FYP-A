@@ -19,6 +19,7 @@ import TreatmentRecommendationDashboard from './features/treatment/TreatmentReco
 import TreatmentRecommendationForm from './features/treatment/TreatmentRecommendationForm.jsx';
 import AdminDashboard from './features/admin/AdminDashboard.jsx';
 import AdminPatients from './features/admin/AdminPatients.jsx';
+import AdminEditUser from './features/admin/AdminEditUser.jsx';
 import SystemAnalytics from './features/admin/SystemAnalytics.jsx';
 import ManageUsers from './features/admin/ManageUsers.jsx';
 import MessagesThread from './features/messages/MessagesThread.jsx';
@@ -105,6 +106,7 @@ function App() {
               <>
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/users" element={<ManageUsers />} />
+                <Route path="/admin/users/:id/edit" element={<AdminEditUser />} />
                 <Route path="/admin/patients" element={<AdminPatients />} />
                 <Route path="/admin/patients/create" element={<CreatePatient />} />
                 <Route path="/admin/analytics" element={<SystemAnalytics />} />

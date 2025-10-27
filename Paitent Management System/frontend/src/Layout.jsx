@@ -160,17 +160,20 @@ function RoleHeaderBar({ role }) {
     },
   };
   const meta = roleMeta[role] || roleMeta.default;
+  const homePath = role === 'admin' ? '/admin' : '/';
 
   return (
     <header className="w-full border-b border-emerald-100/60 bg-gradient-to-r from-white via-emerald-50 to-cyan-50 shadow-sm">
       <div className="flex items-center justify-between px-6 py-3 text-slate-700">
         <div className="flex items-center gap-4">
-          <img
-            src="/biotective-logo.png"
-            alt="BIOTECTIVE"
-            className="h-9 drop-shadow-sm"
-            onError={(e)=>{ e.currentTarget.style.display='none'; }}
-          />
+          <NavLink to={homePath} aria-label="Go to Dashboard">
+            <img
+              src="/biotective-logo.png"
+              alt="BIOTECTIVE"
+              className="h-9 drop-shadow-sm cursor-pointer"
+              onError={(e)=>{ e.currentTarget.style.display='none'; }}
+            />
+          </NavLink>
           <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.iconBg} shadow-sm`}> 
             {meta.icon}
           </div>

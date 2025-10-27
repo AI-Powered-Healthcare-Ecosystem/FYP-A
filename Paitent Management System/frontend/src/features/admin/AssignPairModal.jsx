@@ -68,7 +68,10 @@ export default function AssignPairModal({ open, onClose, onAssigned, preselectPa
     const run = async () => {
       try {
         setLoadingDoctors(true);
-        const res = await fetch(`${laravelUrl}/api/admin/users`);
+        const res = await fetch(`${laravelUrl}/api/admin/users`, {
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
         const data = await res.json();
         const docs = Array.isArray(data) ? data.filter(u => u.role === 'doctor') : [];
         if (!cancelled) setDoctorsRaw(docs);

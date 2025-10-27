@@ -11,7 +11,7 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\UserNotificationController;
 
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('web')->post('/login', [AuthController::class, 'login']);
 Route::post('/patients', [PatientController::class, 'store']);
 Route::post('/chatbot/message', [ChatbotController::class, 'message']);
 Route::put('/patients/{id}', [PatientController::class, 'update']);
@@ -20,6 +20,7 @@ Route::get('/patients', [PatientController::class, 'index']);
 Route::get('/patients/{id}', [PatientController::class, 'show']);
 Route::get('/patients/{id}/doctor', [PatientController::class, 'doctor']);
 Route::post('/patients/{id}/risk', [PatientController::class, 'saveRisk']);
+Route::post('/patients/{id}/apply-prediction-hba1c3', [PatientController::class, 'applyPredictionToHba1c3']);
 Route::delete('/account', [UserController::class, 'deleteSelf']);
 
 // Messaging
@@ -39,8 +40,9 @@ Route::options('{any}', function () {
     return response()->json([], 200);
 })->where('any', '.*');
 
-Route::prefix('admin')->group(function () {
+Route::middleware(['web', 'auth:web'])->prefix('admin')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
     Route::get('/patients', [PatientController::class, 'index']);
     Route::delete('/patients/{id}', [PatientController::class, 'destroy']);
     Route::patch('/patients/{id}/assign-doctor', [PatientController::class, 'assignDoctor']);

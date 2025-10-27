@@ -8,6 +8,11 @@ export const laravelClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Include session cookies for auth-protected admin routes
+  withCredentials: true,
+  // Axios will automatically read XSRF-TOKEN cookie and send X-XSRF-TOKEN header
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 export const fastApiClient = axios.create({
@@ -28,3 +33,22 @@ export const fastApiClient = axios.create({
     }
   );
 });
+
+// Auto-refresh CSRF cookie and retry once on 419/401 for Laravel client
+laravelClient.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const status = error?.response?.status;
+    const config = error?.config || {};
+    if ((status === 419 || status === 401) && !config.__retried) {
+      try {
+        await axios.get(`${laravelBaseURL}/sanctum/csrf-cookie`, { withCredentials: true });
+        config.__retried = true;
+        return laravelClient.request(config);
+      } catch (e) {
+        // fall through
+      }
+    }
+    return Promise.reject(error);
+  }
+);

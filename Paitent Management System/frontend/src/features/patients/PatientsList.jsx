@@ -29,7 +29,11 @@ const PatientsList = ({ hideHeader = false }) => {
     if (!window.confirm('Are you sure you want to delete this patient?')) return;
     try {
       const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
-      await fetch(`${laravelUrl}/api/admin/patients/${id}`, { method: 'DELETE' });
+      await fetch(`${laravelUrl}/api/admin/patients/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
       setPatients((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
       console.error('Error deleting patient:', err);
@@ -42,7 +46,10 @@ const PatientsList = ({ hideHeader = false }) => {
       if (user?.role !== 'admin') return;
       try {
         const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
-        const res = await fetch(`${laravelUrl}/api/admin/users`);
+        const res = await fetch(`${laravelUrl}/api/admin/users`, {
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
         const data = await res.json();
         setDoctors((data || []).filter(u => u.role === 'doctor'));
       } catch (e) {

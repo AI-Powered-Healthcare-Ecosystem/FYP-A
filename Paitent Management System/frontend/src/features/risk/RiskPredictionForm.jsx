@@ -15,6 +15,7 @@ function RiskPredictionForm() {
   const pollAttemptsRef = useRef(0);
   const [patientData, setPatientData] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [forceRefresh, setForceRefresh] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
@@ -44,31 +45,33 @@ function RiskPredictionForm() {
         // Show page immediately; risk fetch runs in background
         setLoading(false);
 
-        const doFetchRisk = async () => {
+        const doFetchRisk = async (force = false) => {
           if (cancelled) return;
-          // 1) Try Laravel DB first for instant UI
+          // 1) Try Laravel DB first for instant UI (skip when force=true)
           const apiBase = (import.meta.env.VITE_LARAVEL_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
-          try {
-            const pRes = await fetch(`${apiBase}/api/patients/${id}`);
-            if (pRes.ok) {
-              const p = await pRes.json();
-              if (p && p.last_risk_score != null) {
-                const numericRisk = parseFloat(p.last_risk_score);
-                const riskLabel = p.last_risk_label || mapNumericRisk(numericRisk);
-                const riskColor = getRiskColor(riskLabel);
-                setResult({ value: numericRisk.toFixed(2), label: riskLabel, color: riskColor, raw: numericRisk });
-                setLastUpdated(p.last_predicted_at ? new Date(p.last_predicted_at).toLocaleString() : new Date().toLocaleString());
-                setRiskStale(false);
-                pollAttemptsRef.current = 0;
-                return; // Served from DB cache; skip FastAPI
+          if (!force) {
+            try {
+              const pRes = await fetch(`${apiBase}/api/patients/${id}`);
+              if (pRes.ok) {
+                const p = await pRes.json();
+                if (p && p.last_risk_score != null) {
+                  const numericRisk = parseFloat(p.last_risk_score);
+                  const riskLabel = p.last_risk_label || mapNumericRisk(numericRisk);
+                  const riskColor = getRiskColor(riskLabel);
+                  setResult({ value: numericRisk.toFixed(2), label: riskLabel, color: riskColor, raw: numericRisk });
+                  setLastUpdated(p.last_predicted_at ? new Date(p.last_predicted_at).toLocaleString() : new Date().toLocaleString());
+                  setRiskStale(false);
+                  pollAttemptsRef.current = 0;
+                  return; // Served from DB cache; skip FastAPI
+                }
               }
+            } catch (_) {
+              // ignore, fall through to FastAPI
             }
-          } catch (_) {
-            // ignore, fall through to FastAPI
           }
 
           // 2) No DB value yet -> compute via FastAPI
-          const predictionRes = await fastApiClient.post('/risk-dashboard?force=false', {
+          const predictionRes = await fastApiClient.post(`/risk-dashboard?force=${force ? 'true' : 'false'}`, {
             features,
             patient_id: Number(id),
             model_version: 'risk_v1',
@@ -121,7 +124,8 @@ function RiskPredictionForm() {
         };
 
         // initial risk fetch (non-blocking)
-        doFetchRisk();
+        await doFetchRisk(forceRefresh);
+        if (!cancelled) setForceRefresh(false);
       } catch (err) {
         setError('Failed to fetch or predict.');
         setLoading(false);
@@ -130,7 +134,7 @@ function RiskPredictionForm() {
 
     fetchPatientAndPredict();
     return () => { cancelled = true; };
-  }, [id, reloadKey]);
+  }, [id, reloadKey, forceRefresh]);
 
   const mapNumericRisk = (val) => {
     if (val < 5.7) return 'Normal';
@@ -290,7 +294,7 @@ function RiskPredictionForm() {
                 View patient record
               </Link>
               <button
-                onClick={() => { setError(null); setReloadKey((k) => k + 1); pollAttemptsRef.current = 0; }}
+                onClick={() => { setError(null); setForceRefresh(true); setReloadKey((k) => k + 1); pollAttemptsRef.current = 0; }}
                 className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full border border-rose-200 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
                 title="Refresh prediction"
                 type="button"

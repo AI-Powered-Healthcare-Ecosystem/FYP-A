@@ -75,6 +75,35 @@ class PatientController extends Controller
         return response()->json(['message' => 'Patient saved', 'data' => $patient], 201);
     }
 
+    // POST /api/patients/{id}/apply-prediction-hba1c3
+    public function applyPredictionToHba1c3(Request $request, $id)
+    {
+        $data = $request->validate([
+            'score' => 'required|numeric',
+        ]);
+
+        $patient = Patient::findOrFail($id);
+
+        // Apply predicted score as HbA1c 3rd visit
+        $patient->hba1c_3rd_visit = $data['score'];
+
+        // Recompute only fields impacted by HbA1c3
+        $hba1c2 = $patient->hba1c_2nd_visit;
+        $hba1c3 = $patient->hba1c_3rd_visit;
+        $patient->reduction_a_2_3 = ($hba1c2 !== null && $hba1c3 !== null) ? ($hba1c2 - $hba1c3) : null;
+
+        // Dates for gaps (leave others unchanged)
+        $firstVisit = $patient->first_visit_date ? Carbon::parse($patient->first_visit_date) : null;
+        $secondVisit = $patient->second_visit_date ? Carbon::parse($patient->second_visit_date) : null;
+        $thirdVisit = $patient->third_visit_date ? Carbon::parse($patient->third_visit_date) : null;
+        $patient->gap_from_initial_visit = ($firstVisit && $thirdVisit) ? $firstVisit->diffInDays($thirdVisit) : $patient->gap_from_initial_visit;
+        $patient->gap_from_first_clinical_visit = ($secondVisit && $thirdVisit) ? $secondVisit->diffInDays($thirdVisit) : $patient->gap_from_first_clinical_visit;
+
+        $patient->save();
+
+        return response()->json(['message' => 'Applied prediction to HbA1c (3rd visit)', 'data' => $patient]);
+    }
+
     public function update(UpdatePatientRequest $request, $id)
 {
     $validated = $request->validated();
@@ -263,6 +292,13 @@ class PatientController extends Controller
         $patient->last_risk_label = $data['label'];
         $patient->risk_model_version = $data['model_version'] ?? 'risk_v1';
         $patient->last_predicted_at = isset($data['predicted_at']) ? Carbon::parse($data['predicted_at']) : now();
+
+        // Auto-apply predicted score to HbA1c 3rd visit and recompute dependent metrics
+        $patient->hba1c_3rd_visit = $data['score'];
+        $hba1c2 = $patient->hba1c_2nd_visit;
+        $hba1c3 = $patient->hba1c_3rd_visit;
+        $patient->reduction_a_2_3 = ($hba1c2 !== null && $hba1c3 !== null) ? ($hba1c2 - $hba1c3) : null;
+
         $patient->save();
 
         return response()->json(['message' => 'Risk saved', 'data' => $patient]);

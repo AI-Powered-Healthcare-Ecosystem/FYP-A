@@ -78,7 +78,11 @@ jobs:
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
           echo "DB_SSL_CA=/home/site/wwwroot/storage/certs/DigiCertGlobalRootCA.crt.pem" >> .env
-          echo "APP_KEY=${{ secrets.APP_KEY }}" >> .env  
+          echo "APP_KEY=${{ secrets.APP_KEY }}" >> .env
+          echo "SESSION_DRIVER=cookie" >> .env
+          echo "SESSION_LIFETIME=120" >> .env
+          echo "SESSION_SECURE_COOKIE=true" >> .env
+          echo "SESSION_SAME_SITE=none" >> .env  
 
       - name: Configure document root
         run: |

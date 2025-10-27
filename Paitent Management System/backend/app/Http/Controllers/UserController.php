@@ -25,6 +25,19 @@ class UserController extends Controller
         return response()->json($data, 200);
     }
 
+    // Show a single user
+    public function show($id)
+    {
+        $user = User::with('patient')->findOrFail($id);
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'patient_id' => $user->patient->id ?? null,
+        ], 200);
+    }
+
     // Update user info
     public function update(Request $request, $id)
     {

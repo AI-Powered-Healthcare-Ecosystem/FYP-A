@@ -95,7 +95,10 @@ const CreatePatient = () => {
       if (user?.role !== 'admin') return;
       try {
         const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
-        const res = await fetch(`${laravelUrl}/api/admin/users`);
+        const res = await fetch(`${laravelUrl}/api/admin/users`, {
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
         const data = await res.json();
         setDoctors((data || []).filter(u => u.role === 'doctor'));
       } catch (e) {

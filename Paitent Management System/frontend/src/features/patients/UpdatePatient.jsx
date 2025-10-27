@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Card from '@/components/Card.jsx';
+import { ClipboardPlus } from 'lucide-react';
 
 const UpdatePatient = () => {
   const { id } = useParams();
@@ -9,33 +11,37 @@ const UpdatePatient = () => {
 
   useEffect(() => {
     const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
-    fetch(`${laravelUrl}/api/patients/${id}`)
+    fetch(`${laravelUrl}/api/patients/${id}`, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    })
       .then((res) => res.json())
-      .then((data) => {
+      .then((json) => {
+        const data = json?.data ?? json; // Unwrap Laravel Resource
         setFormData({
-          name: data.name || '',
-          age: data.age || '',
-          gender: data.gender || '',
-          height_cm: data.height_cm || '',
-          weight_kg: data.weight_kg || '',
-          physical_activity: data.physical_activity || '',
-          insulinType: data.insulin_regimen_type || '',
-          medicalHistory: data.medical_history || '',
-          medications: data.medications || '',
-          remarks: data.remarks || '',
-          fvg: data.fvg || '',
-          fvg_1: data.fvg_1 || '',
-          fvg_2: data.fvg_2 || '',
-          fvg_3: data.fvg_3 || '',
-          hba1c1: data.hba1c_1st_visit || '',
-          hba1c2: data.hba1c_2nd_visit || '',
-          hba1c3: data.hba1c_3rd_visit || '',
-          egfr: data.egfr || '',
-          dds_1: data.dds_1 || '',
-          dds_3: data.dds_3 || '',
-          first_visit_date: data.first_visit_date || '',
-          second_visit_date: data.second_visit_date || '',
-          third_visit_date: data.third_visit_date || '',
+          name: data?.name || '',
+          age: data?.age || '',
+          gender: data?.gender || '',
+          height_cm: data?.height_cm || '',
+          weight_kg: data?.weight_kg || '',
+          physical_activity: data?.physical_activity || '',
+          insulinType: data?.insulin_regimen_type || '',
+          medicalHistory: data?.medicalHistory ?? data?.medical_history ?? '',
+          medications: data?.medications || '',
+          remarks: data?.remarks || '',
+          fvg: data?.fvg || '',
+          fvg_1: data?.fvg_1 || '',
+          fvg_2: data?.fvg_2 || '',
+          fvg_3: data?.fvg_3 || '',
+          hba1c1: data?.hba1c_1st_visit || '',
+          hba1c2: data?.hba1c_2nd_visit || '',
+          hba1c3: data?.hba1c_3rd_visit || '',
+          egfr: data?.egfr || '',
+          dds_1: data?.dds_1 || '',
+          dds_3: data?.dds_3 || '',
+          first_visit_date: data?.first_visit_date || '',
+          second_visit_date: data?.second_visit_date || '',
+          third_visit_date: data?.third_visit_date || '',
         });
         setLoading(false);
       })
@@ -75,11 +81,19 @@ const UpdatePatient = () => {
       const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
       const res = await fetch(`${laravelUrl}/api/patients/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify(enrichedData),
       });
 
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+      if (!res.ok) {
+        let errText = await res.text();
+        try { console.error('Update error payload:', JSON.parse(errText)); } catch { console.error('Update error payload (text):', errText); }
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
       await res.json();
       alert('Patient updated!');
       navigate(`/patient/${id}`);
@@ -92,81 +106,89 @@ const UpdatePatient = () => {
   if (loading || !formData) return <div className="text-center py-10">Loading...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      <div className="bg-indigo-500 text-white rounded-lg p-6 mb-8">
-        <h2 className="text-xl font-bold">Update Patient</h2>
-        <p className="text-sm text-blue-100">Modify patient records and clinical details</p>
-      </div>
+    <div className="w-full px-6 md:px-10 lg:px-14 py-10 space-y-10">
+      <Card className="border-0 rounded-3xl bg-gradient-to-br from-white via-indigo-50 to-indigo-100 ring-1 ring-indigo-100/70 shadow-xl px-6 sm:px-8 py-8 space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+            <ClipboardPlus size={24} />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-indigo-400">Patient record</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Update Patient</h1>
+            <p className="text-xs text-indigo-400 mt-1">Modify demographics, history, and clinical indicators.</p>
+          </div>
+        </div>
+      </Card>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <section className="bg-blue-50 p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-blue-700">🧍‍♂️ Basic Information</h2>
+        <Card className="rounded-2xl bg-white shadow-md ring-1 ring-indigo-100/70 px-6 py-6 space-y-6">
+          <SectionHeader icon="🧍‍♂️" title="Basic information" subtitle="Key lifestyle inputs" />
           <div className="grid md:grid-cols-2 gap-4">
-            <Input label="Full Name" name="name" value={formData.name} onChange={handleChange} />
-            <Input label="Age" name="age" type="number" value={formData.age} onChange={handleChange} />
-            <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
-            <Select label="Insulin Regimen Type" name="insulinType" value={formData.insulinType} onChange={handleChange} options={["BB", "PTDS", "PBD"]} />
-            <Input label="Height (cm)" name="height_cm" type="number" step="0.1" value={formData.height_cm} onChange={handleChange} />
-            <Input label="Weight (kg)" name="weight_kg" type="number" step="0.1" value={formData.weight_kg} onChange={handleChange} />
-            <Select label="Physical Activity" name="physical_activity" value={formData.physical_activity} onChange={handleChange} options={['1–2 times per week','3–4 times per week','5–6 times per week','Daily']} />
+            <Select label="Insulin regimen type" name="insulinType" value={formData.insulinType} onChange={handleChange} options={["BB","PTDS","PBD"]} />
+            <Input label="Weight (kg)" name="weight_kg" type="number" step="0.1" value={formData.weight_kg} onChange={handleChange} placeholder="68.5" />
+            <Select label="Physical activity" name="physical_activity" value={formData.physical_activity} onChange={handleChange} options={['1–2 times per week','3–4 times per week','5–6 times per week','Daily']} />
           </div>
-        </section>
+        </Card>
 
-        <section className="bg-green-50 p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-green-700">📝 Medical Background</h2>
+        <Card className="rounded-2xl bg-white shadow-md ring-1 ring-emerald-100/70 px-6 py-6 space-y-6">
+          <SectionHeader icon="📝" title="Medical background" subtitle="Narrative history for context" />
           <div className="grid md:grid-cols-2 gap-4">
-            <Textarea label="Medical History" name="medicalHistory" value={formData.medicalHistory} onChange={handleChange} />
-            <Textarea label="Current Medications" name="medications" value={formData.medications} onChange={handleChange} />
-            <Textarea label="Additional Remarks" name="remarks" value={formData.remarks} onChange={handleChange} className="md:col-span-2" />
+            <Textarea label="Medical history" name="medicalHistory" value={formData.medicalHistory} onChange={handleChange} placeholder="Enter relevant medical history" />
+            <Textarea label="Current medications" name="medications" value={formData.medications} onChange={handleChange} placeholder="List current medications" />
+            <Textarea label="Additional remarks" name="remarks" value={formData.remarks} onChange={handleChange} placeholder="Any additional notes or observations" className="md:col-span-2" />
           </div>
-        </section>
+        </Card>
 
-        <section className="bg-purple-50 p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-purple-700">📊 Clinical Indicators</h2>
-          <div className="mb-6">
-            <h3 className="font-medium text-gray-700 mb-2">Fasting Venous Glucose (FVG)</h3>
+        <Card className="rounded-2xl bg-white shadow-md ring-1 ring-purple-100/70 px-6 py-6 space-y-8">
+          <SectionHeader icon="📊" title="Clinical indicators" subtitle="Structured biomarker capture" />
+
+          <Fieldset title="Fasting venous glucose (FVG)">
+            <div className="grid md:grid-cols-4 gap-4">
+              <Input name="fvg" label="Initial FVG" value={formData.fvg} onChange={handleChange} placeholder="mmol/L" />
+              <Input name="fvg_1" label="FVG (1st visit)" value={formData.fvg_1} onChange={handleChange} placeholder="mmol/L" />
+              <Input name="fvg_2" label="FVG (2nd visit)" value={formData.fvg_2} onChange={handleChange} placeholder="mmol/L" />
+              <Input name="fvg_3" label="FVG (3rd visit)" value={formData.fvg_3} onChange={handleChange} placeholder="mmol/L" />
+            </div>
+          </Fieldset>
+
+          <Fieldset title="HbA1c measurements">
             <div className="grid md:grid-cols-3 gap-4">
-              <Input name="fvg" label="Initial FVG" value={formData.fvg} onChange={handleChange} />
-              <Input name="fvg_1" label="FVG (1st Visit)" value={formData.fvg_1} onChange={handleChange} />
-              <Input name="fvg_2" label="FVG (2nd Visit)" value={formData.fvg_2} onChange={handleChange} />
-              <Input name="fvg_3" label="FVG (3rd Visit)" value={formData.fvg_3} onChange={handleChange} />
+              <Input name="hba1c1" label="HbA1c (1st reading)" value={formData.hba1c1} onChange={handleChange} placeholder="%" />
+              <Input name="hba1c2" label="HbA1c (2nd reading)" value={formData.hba1c2} onChange={handleChange} placeholder="%" />
+              <Input name="hba1c3" label="HbA1c (3rd reading)" value={formData.hba1c3} onChange={handleChange} placeholder="%" />
             </div>
-          </div>
+          </Fieldset>
 
-          <div className="mb-6">
-            <h3 className="font-medium text-gray-700 mb-2">HbA1c Measurements</h3>
+          <Fieldset title="Other clinical indicators">
             <div className="grid md:grid-cols-3 gap-4">
-              <Input name="hba1c1" label="HbA1c (1st Reading)" value={formData.hba1c1} onChange={handleChange} />
-              <Input name="hba1c2" label="HbA1c (2nd Reading)" value={formData.hba1c2} onChange={handleChange} />
-              <Input name="hba1c3" label="HbA1c (3rd Reading)" value={formData.hba1c3} onChange={handleChange} />
+              <Input name="egfr" label="eGFR" value={formData.egfr} onChange={handleChange} placeholder="mL/min/1.73m²" />
+              <Input name="dds_1" label="DDS (1st reading)" value={formData.dds_1} onChange={handleChange} placeholder="Score" />
+              <Input name="dds_3" label="DDS (3rd reading)" value={formData.dds_3} onChange={handleChange} placeholder="Score" />
             </div>
-          </div>
+          </Fieldset>
 
-          <div className="mb-6">
-            <h3 className="font-medium text-gray-700 mb-2">Other Clinical Indicators</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Input name="egfr" label="eGFR" value={formData.egfr} onChange={handleChange} />
-              <Input name="dds_1" label="DDS (1st Reading)" value={formData.dds_1} onChange={handleChange} />
-              <Input name="dds_3" label="DDS (3rd Reading)" value={formData.dds_3} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-medium text-gray-700 mb-2">Visit Dates</h3>
+          <Fieldset title="Visit timeline">
             <div className="grid md:grid-cols-3 gap-4">
-              <Input name="first_visit_date" label="First Visit Date" type="date" value={formData.first_visit_date} onChange={handleChange} />
-              <Input name="second_visit_date" label="Second Visit Date" type="date" value={formData.second_visit_date} onChange={handleChange} />
-              <Input name="third_visit_date" label="Third Visit Date" type="date" value={formData.third_visit_date} onChange={handleChange} />
+              <Input name="first_visit_date" label="First visit date" type="date" value={formData.first_visit_date} onChange={handleChange} />
+              <Input name="second_visit_date" label="Second visit date" type="date" value={formData.second_visit_date} onChange={handleChange} />
+              <Input name="third_visit_date" label="Third visit date" type="date" value={formData.third_visit_date} onChange={handleChange} />
             </div>
-          </div>
-        </section>
+          </Fieldset>
+        </Card>
 
-        <div className="flex justify-end gap-4 pt-4">
-          <button type="button" onClick={() => navigate(-1)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-5 py-2 rounded">
+        <div className="flex flex-wrap justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border border-slate-200 bg-white/80 text-slate-600 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+          >
             Cancel
           </button>
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded">
-            Save Changes
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-5 py-2.5 rounded-full border border-indigo-200 bg-indigo-600/90 text-white hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+          >
+            Save changes
           </button>
         </div>
       </form>
@@ -174,50 +196,70 @@ const UpdatePatient = () => {
   );
 };
 
-const Input = ({ label, name, value, onChange, placeholder, type = 'text', className = '' }) => (
+const labelClass = 'text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2 block';
+const controlBaseClass = 'w-full rounded-xl border border-white/70 bg-white/90 px-4 py-3 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-1 focus-visible:ring-offset-white transition';
+
+const Input = ({ label, name, value, onChange, placeholder, type = 'text', className = '', disabled = false }) => (
   <div className={className}>
-    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <label className={labelClass}>{label}</label>
     <input
       type={type}
       name={name}
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 placeholder-gray-500"
+      disabled={disabled}
+      className={`${controlBaseClass} ${disabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
     />
   </div>
 );
 
 const Textarea = ({ label, name, value, onChange, placeholder, className = '' }) => (
   <div className={className}>
-    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <label className={labelClass}>{label}</label>
     <textarea
       name={name}
       value={value}
       onChange={onChange}
       placeholder={placeholder}
       rows="3"
-      className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 placeholder-gray-500"
+      className={`${controlBaseClass} min-h-[120px]`}
     />
   </div>
 );
 
-const Select = ({ label, name, value, onChange, options = [], className = '' }) => (
+const Select = ({ label, name, value, onChange, options = [], placeholder = '', className = '', disabled = false }) => (
   <div className={className}>
-    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <label className={labelClass}>{label}</label>
     <select
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      disabled={disabled}
+      className={`${controlBaseClass} ${disabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
     >
-      <option value="">Select {label.toLowerCase()}</option>
+      <option value="">{placeholder || `Select ${label.toLowerCase()}`}</option>
       {options.map((opt) => (
-        <option key={opt} value={opt}>
-          {opt}
-        </option>
+        <option key={opt} value={opt}>{opt}</option>
       ))}
     </select>
+  </div>
+);
+
+const SectionHeader = ({ icon, title, subtitle }) => (
+  <div className="flex flex-col gap-1">
+    <div className="flex items-center gap-2 text-slate-700">
+      <span className="text-lg">{icon}</span>
+      <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
+    </div>
+    <p className="text-xs text-slate-500">{subtitle}</p>
+  </div>
+);
+
+const Fieldset = ({ title, children }) => (
+  <div className="space-y-4">
+    <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{title}</h3>
+    {children}
   </div>
 );
 

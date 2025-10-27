@@ -59,6 +59,9 @@ public function login(Request $request)
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
+    // Regenerate session to prevent fixation and ensure cookie is set
+    $request->session()->regenerate();
+
     $user = Auth::user();
 
     return response()->json([

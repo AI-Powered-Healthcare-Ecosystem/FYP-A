@@ -6,33 +6,39 @@ const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useUser();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://127.0.0.1:8000';
+    const laravelUrl = (import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000').replace(/\/$/, '');
     try {
       const response = await fetch(`${laravelUrl}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        setError('');
         const { role, id, name } = data.user;
         login({ role, id, name });
         localStorage.setItem('isAuthenticated', 'true');
 
-        if (role === 'doctor') navigate('/patients');
-        else if (role === 'patient') navigate('/profile');
+        if (role === 'admin') navigate('/admin');
         else navigate('/');
+      } else {
+        const msg = data?.message || 'Invalid email or password';
+        setError(msg);
       }
     } catch (err) {
       console.error('Login error:', err);
+      setError('Unable to sign in. Please try again.');
     }
   };
 
@@ -67,6 +73,12 @@ const SignIn = () => {
               required
             />
           </div>
+
+          {error && (
+            <div className="text-sm font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
 
           <div className="flex items-center justify-start text-sm text-gray-600 dark:text-gray-400">
             <label className="inline-flex items-center">
