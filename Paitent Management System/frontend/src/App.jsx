@@ -27,7 +27,7 @@ import MessagesPage from './features/messages/MessagesPage.jsx';
 import DoctorSettings from './features/settings/DoctorSettings.jsx';
 import PatientSettings from './features/settings/PatientSettings.jsx';
 import AdminSettings from './features/settings/AdminSettings.jsx';
-
+import Appointments from './features/appointments/Appointments';
 
 import './App.css';
 
@@ -99,6 +99,7 @@ function App() {
                 {/* Doctor message thread */}
                 <Route path="/patients/:id/messages" element={<MessagesThread />} />
                 <Route path="/doctor/settings" element={<DoctorSettings />} />
+                <Route path="/appointments" element={<Appointments />} />
               </>
             )}
 
