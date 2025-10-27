@@ -29,7 +29,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: 'Paitent Management System/backend/fastapi'
+          context: 'Paitent Management System'
           file: 'Paitent Management System/backend/fastapi/Dockerfile'
           push: true
           tags: |
