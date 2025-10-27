@@ -46,15 +46,15 @@ function Layout({ children }) {
               <ul className={`space-y-1 overflow-visible ${!isOpen ? 'flex flex-col items-center' : ''}`}>
                 <HoverAddPatientWrapper isOpen={isOpen} />
                 <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '60ms' : '0ms' }}>
+                  <NavItem to="/appointments" icon={<Calendar size={18} />} label="Appointments" isOpen={isOpen} />
+                </li>
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '80ms' : '0ms' }}>
                   <NavItem to="/messages" icon={<MessageCircle size={18} />} label="Messages" isOpen={isOpen} />
                 </li>
               </ul>
 
               <h3 className={`mt-3 px-2 py-2 text-white/80 text-[11px] font-semibold uppercase tracking-wide transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>Functions</h3>
               <ul className={`space-y-1 ${!isOpen ? 'flex flex-col items-center' : ''}`}>
-                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '80ms' : '0ms' }}>
-                  <NavItem to="/appointments" icon={<Calendar size={18} />} label="Appointments" isOpen={isOpen} />
-                </li>
                 <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '100ms' : '0ms' }}>
                   <NavItem to="/predict" icon={<LineChart size={18} />} label="Risk Prediction" isOpen={isOpen} />
                 </li>

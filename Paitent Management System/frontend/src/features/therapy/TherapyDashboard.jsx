@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Doughnut, Line } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import Card from '@/components/Card.jsx';
+import { appointmentsApi } from '@/api/appointments';
+import { useUser } from '@/UserContext.jsx';
 import { Activity, Search as SearchIcon, SlidersHorizontal, X, Users as UsersIcon, TrendingUp, Activity as ActivityIcon, TrendingDown, CalendarClock, ClipboardPlus } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge.jsx';
 
@@ -10,6 +12,9 @@ Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointEle
 
 const TherapyDashboard = () => {
   const [patients, setPatients] = useState([]);
+  const { user } = useUser();
+  const [appts, setAppts] = useState([]);
+  const [apptMetrics, setApptMetrics] = useState({ last30: 0, next14: 0, showRate: null, noShowRate: null });
 
   // Filters, search and pagination states
   const [search, setSearch] = useState('');
@@ -28,6 +33,48 @@ const TherapyDashboard = () => {
       .then((data) => setPatients(data))
       .catch((err) => console.error(err));
   }, []);
+
+  // Load appointments and compute snapshot metrics
+  useEffect(() => {
+    let cancelled = false;
+    const todayLocal = () => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const addDays = (str, n) => {
+      const [y,m,d] = str.split('-').map(Number);
+      const dt = new Date(y, m-1, d);
+      dt.setDate(dt.getDate() + n);
+      const yy = dt.getFullYear();
+      const mm = String(dt.getMonth()+1).padStart(2,'0');
+      const dd = String(dt.getDate()).padStart(2,'0');
+      return `${yy}-${mm}-${dd}`;
+    };
+    (async () => {
+      try {
+        const params = { perPage: 200, page: 1, ...(user?.role === 'doctor' ? { doctor_id: user.id } : {}) };
+        const { data } = await appointmentsApi.list(params);
+        if (cancelled) return;
+        const rows = Array.isArray(data) ? data : [];
+        setAppts(rows);
+        const today = todayLocal();
+        const from30 = addDays(today, -30);
+        const to14 = addDays(today, 14);
+        const last30 = rows.filter(a => a.date >= from30 && a.date <= today);
+        const next14 = rows.filter(a => a.date > today && a.date <= to14);
+        const completed = last30.filter(a => (a.status || '').toLowerCase() === 'completed').length;
+        const noShow = last30.filter(a => (a.status || '').toLowerCase() === 'noshow' || (a.status || '').toLowerCase() === 'no_show').length;
+        const denom = completed + noShow;
+        const showRate = denom ? Math.round((completed/denom)*100) : null;
+        const noShowRate = denom ? Math.round((noShow/denom)*100) : null;
+        setApptMetrics({ last30: last30.length, next14: next14.length, showRate, noShowRate });
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -368,67 +415,46 @@ const TherapyDashboard = () => {
 
         <Card className="rounded-2xl bg-gradient-to-br from-white via-indigo-50 to-indigo-100 ring-1 ring-indigo-100/60 shadow-md px-5 py-5 space-y-4">
           <div className="flex items-start justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Cohort snapshot</h3>
-            <span className="text-[11px] text-slate-400">{patients.length} total</span>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Appointments snapshot</h3>
+            <span className="text-[11px] text-slate-400">last 30d</span>
           </div>
 
-          <div className="space-y-4 text-xs text-slate-600">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Age cohorts</p>
-              <div className="grid grid-cols-2 gap-2">
-                {ageCohortOptions
-                  .filter((cohort) => cohort !== 'Unknown')
-                  .map((cohort) => (
-                    <div key={cohort} className="rounded-lg border border-indigo-100 bg-white/70 px-2.5 py-2 shadow-sm">
-                      <p className="text-[11px] text-slate-500">{cohort}</p>
-                      <p className="text-sm font-semibold text-slate-800">
-                        {ageCohortDistribution[cohort] || 0}
-                        <span className="ml-1 text-[11px] font-medium text-slate-400">{cohortPercent(ageCohortDistribution[cohort] || 0)}%</span>
-                      </p>
-                    </div>
-                  ))}
-                {ageCohortDistribution.Unknown > 0 && (
-                  <div className="rounded-lg border border-dashed border-indigo-200 bg-white/60 px-2.5 py-2">
-                    <p className="text-[11px] text-slate-500">Unknown</p>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {ageCohortDistribution.Unknown}
-                      <span className="ml-1 text-[11px] font-medium text-slate-400">{cohortPercent(ageCohortDistribution.Unknown)}%</span>
-                    </p>
-                  </div>
-                )}
-              </div>
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="rounded-lg border border-indigo-100 bg-white/80 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-500">Total (30d)</p>
+              <p className="text-lg font-semibold text-indigo-700">{apptMetrics.last30}</p>
             </div>
-
-            <div className="border-t border-indigo-100 pt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Gender mix</p>
-              <div className="flex flex-wrap gap-2">
-                {genderEntries.length === 0 ? (
-                  <span className="text-[11px] text-slate-400">No gender data</span>
-                ) : (
-                  genderEntries.map(([label, value]) => (
-                    <div key={label} className="rounded-full border border-indigo-100 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm">
-                      {label}: {value}
-                      <span className="ml-1 text-slate-400">{cohortPercent(value)}%</span>
-                    </div>
-                  ))
-                )}
-              </div>
+            <div className="rounded-lg border border-emerald-100 bg-white/80 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-500">Show-up rate</p>
+              <p className="text-lg font-semibold text-emerald-700">{apptMetrics.showRate !== null ? `${apptMetrics.showRate}%` : '—'}</p>
             </div>
-
-            <div className="border-t border-indigo-100 pt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Top regimens</p>
-              <div className="flex flex-col gap-1">
-                {topInsulinMix.length === 0 ? (
-                  <span className="text-[11px] text-slate-400">No regimen data</span>
-                ) : (
-                  topInsulinMix.map(([name, value]) => (
-                    <div key={name} className="flex items-center justify-between rounded-lg border border-indigo-100 bg-white/75 px-3 py-1.5 text-[11px] text-slate-600 shadow-sm">
-                      <span className="font-medium">{name}</span>
-                      <span className="font-semibold text-slate-800">{value}</span>
-                    </div>
-                  ))
-                )}
-              </div>
+            <div className="rounded-lg border border-rose-100 bg-white/80 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-rose-500">No‑show rate</p>
+              <p className="text-lg font-semibold text-rose-700">{apptMetrics.noShowRate !== null ? `${apptMetrics.noShowRate}%` : '—'}</p>
+            </div>
+            <div className="col-span-3 rounded-lg border border-sky-100 bg-white/80 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-sky-500 mb-1">Upcoming (14d)</p>
+              {(() => {
+                const today = new Date();
+                const to14 = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14);
+                const upcoming = (appts || [])
+                  .filter(a => a.date && new Date(a.date) > today && new Date(a.date) <= to14)
+                  .sort((a,b) => String(a.date).localeCompare(String(b.date)))
+                  .slice(0,5);
+                if (upcoming.length === 0) return <p className="text-[11px] text-slate-400">No upcoming appointments in next 14 days.</p>;
+                return (
+                  <ul className="divide-y divide-slate-100">
+                    {upcoming.map((a) => (
+                      <li key={a.id} className="py-1.5 flex items-center justify-between">
+                        <span className="text-sm text-slate-700">{a.patient_name || a.patientName || 'Patient'}</span>
+                        <span className="text-[11px] rounded-full bg-sky-50 text-sky-700 px-2 py-0.5 border border-sky-100">
+                          {new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{a.time ? `, ${a.time}` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
             </div>
           </div>
         </Card>

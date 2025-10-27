@@ -23,6 +23,10 @@ export const patientsApi = {
     // Laravel Resource wraps single items in { data: {...} }
     return res.data?.data ?? res.data;
   },
+  async update(id, payload) {
+    const res = await laravelClient.put(`/patients/${id}`, payload);
+    return res.data;
+  },
   async assignDoctor(patientId, doctorId) {
     const res = await laravelClient.patch(`/admin/patients/${patientId}/assign-doctor`, { doctor_id: doctorId });
     return res.data;

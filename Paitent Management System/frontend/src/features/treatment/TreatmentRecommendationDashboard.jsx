@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../../components/Card.jsx';
+import { appointmentsApi } from '@/api/appointments';
+import { useUser } from '@/UserContext.jsx';
 import { Users as UsersIcon, Search as SearchIcon, SlidersHorizontal, X, Activity as ActivityIcon, TrendingUp, TrendingDown, Stethoscope } from 'lucide-react';
 
 const TreatmentRecommendationDashboard = () => {
@@ -9,6 +11,8 @@ const TreatmentRecommendationDashboard = () => {
   const [search, setSearch] = useState('');
   const [insulinFilter, setInsulinFilter] = useState('All');
   const [genderFilter, setGenderFilter] = useState('All');
+  const { user } = useUser();
+  const [appts, setAppts] = useState([]);
 
   useEffect(() => {
     const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
@@ -19,6 +23,19 @@ const TreatmentRecommendationDashboard = () => {
         setFiltered(data);
       });
   }, []);
+
+  // Load appointments to detect upcoming per patient
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const params = { perPage: 200, page: 1, ...(user?.role === 'doctor' ? { doctor_id: user.id } : {}) };
+        const { data } = await appointmentsApi.list(params);
+        if (!cancelled) setAppts(Array.isArray(data) ? data : []);
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   useEffect(() => {
     const q = search.toLowerCase();
@@ -69,10 +86,64 @@ const TreatmentRecommendationDashboard = () => {
     .sort((a, b) => (Number(a.egfr) || Infinity) - (Number(b.egfr) || Infinity))
     .slice(0, 5);
 
-  const avgDds = filteredCount
-    ? (filtered.reduce((sum, p) => sum + (Number(p.dds_trend_1_3) || 0), 0) / filteredCount).toFixed(2)
-    : '—';
+  const avgDdsNum = filteredCount
+    ? filtered.reduce((sum, p) => sum + (Number(p.dds_trend_1_3) || 0), 0) / filteredCount
+    : null;
+  const avgDds = avgDdsNum !== null ? avgDdsNum.toFixed(2) : '—';
+  const risingCount = filtered.filter((p) => (Number(p.dds_trend_1_3) || 0) > 1).length;
+  const risingPct = filteredCount ? Math.round((risingCount / filteredCount) * 100) : null;
   const noRegimenCount = patients.filter((p) => !p.insulin_regimen_type).length;
+
+  // Pending follow-up (no upcoming appt in 14d)
+  const todayLocal = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const addDays = (str, n) => {
+    const [y,m,d] = str.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    dt.setDate(dt.getDate() + n);
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth()+1).padStart(2,'0');
+    const dd = String(dt.getDate()).padStart(2,'0');
+    return `${yy}-${mm}-${dd}`;
+  };
+  const today = todayLocal();
+  const to14 = addDays(today, 14);
+  const hasUpcoming = (pid) => appts.some(a => a.patient_id === pid && a.date > today && a.date <= to14);
+  const pendingFollowupList = filtered.filter((p) => !hasUpcoming(p.id));
+  const pendingFollowupCount = pendingFollowupList.length;
+  const pendingFollowupTop = pendingFollowupList.slice(0, 3);
+
+  // Recommendation adoption (proxy): improving signals
+  const isImproving = (p) => (Number(p.reduction_a) || 0) > 0.5 || (Number(p.fvg_delta_1_2) || 0) < 0 || (Number(p.dds_trend_1_3) || 0) < 0;
+  const adopted = filtered.filter(isImproving).length;
+  const suggested = filteredCount;
+  const adoptionRate = suggested ? Math.round((adopted / suggested) * 100) : null;
+
+  // HbA1c targets and therapy response
+  const latestHba1c = (p) => {
+    const vals = [p.hba1c_3rd_visit, p.hba1c_2nd_visit, p.hba1c_1st_visit].map((v) => Number(v)).filter((v) => Number.isFinite(v));
+    return vals.length ? vals[0] : null; // prefer 3rd, then 2nd, then 1st
+  };
+  const atTarget = filtered.filter((p) => {
+    const v = latestHba1c(p);
+    return v !== null && v <= 7.0;
+  });
+  const atTargetPct = filteredCount ? Math.round((atTarget.length / filteredCount) * 100) : null;
+
+  const bucketOf = (p) => {
+    const ra = Number(p.reduction_a) || 0;
+    const fvg = Number(p.fvg_delta_1_2) || 0;
+    if (ra > 1.0 || fvg < -1.0) return 'Improving';
+    if (ra < 0 || fvg > 1.0) return 'Worsening';
+    return 'Stable';
+  };
+  const responseBuckets = filtered.reduce((acc, p) => { const b = bucketOf(p); acc[b] = (acc[b]||0)+1; return acc; }, { Improving: 0, Stable: 0, Worsening: 0 });
+  const worseningList = filtered.filter((p) => bucketOf(p) === 'Worsening').slice(0, 4);
 
   const [reportPatients, setReportPatients] = useState([]);
 
@@ -255,54 +326,68 @@ const TreatmentRecommendationDashboard = () => {
             )}
           </Card>
 
-          <Card className="rounded-2xl bg-gradient-to-br from-white via-rose-50 to-rose-100 ring-1 ring-rose-100/70 shadow-md px-4 py-4 space-y-3">
+          {/* HbA1c targets */}
+          <Card className="rounded-2xl bg-gradient-to-br from-white via-amber-50 to-amber-100 ring-1 ring-amber-100/70 shadow-md px-4 py-4 space-y-3">
             <div className="flex items-start justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-500">Engagement watch</h3>
-              <span className="text-[11px] text-rose-400">Adherence signals</span>
+              <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-600">HbA1c targets</h3>
+              <span className="text-[11px] text-amber-500">≤ 7.0%</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs text-rose-700">
-              <div className="rounded-lg border border-rose-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-rose-400">Avg DDS Δ</p>
-                <p className="text-lg font-semibold text-rose-600">{avgDds}</p>
+            <div className="grid grid-cols-3 gap-2 text-xs text-amber-700">
+              <div className="rounded-lg border border-amber-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-amber-400">At target</p>
+                <p className="text-lg font-semibold text-amber-700">{atTarget.length}</p>
               </div>
-              <div className="rounded-lg border border-rose-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-rose-400">No regimen set</p>
-                <p className="text-lg font-semibold text-rose-600">{noRegimenCount}</p>
+              <div className="rounded-lg border border-amber-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-amber-400">Total</p>
+                <p className="text-lg font-semibold text-amber-700">{filteredCount}</p>
               </div>
-              <div className="col-span-2 rounded-lg border border-rose-100 bg-white/80 px-2.5 py-1.5 shadow-sm text-rose-600">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-rose-400">Action tip</p>
-                <p className="text-sm">Prioritise counselling for distress cases and confirm regimen plans for {noRegimenCount} patients.</p>
+              <div className="rounded-lg border border-amber-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-amber-400">Rate</p>
+                <p className="text-lg font-semibold text-amber-700">{atTargetPct !== null ? `${atTargetPct}%` : '—'}</p>
               </div>
             </div>
+          </Card>
+
+          {/* Therapy response bands */}
+          <Card className="rounded-2xl bg-gradient-to-br from-white via-emerald-50 to-emerald-100 ring-1 ring-emerald-100/70 shadow-md px-4 py-4 space-y-3">
+            <div className="flex items-start justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600">Therapy response</h3>
+              <span className="text-[11px] text-emerald-500">Bands</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs text-emerald-700">
+              <div className="rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-400">Improving</p>
+                <p className="text-lg font-semibold text-emerald-700">{responseBuckets.Improving}</p>
+              </div>
+              <div className="rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-400">Stable</p>
+                <p className="text-lg font-semibold text-emerald-700">{responseBuckets.Stable}</p>
+              </div>
+              <div className="rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-400">Worsening</p>
+                <p className="text-lg font-semibold text-emerald-700">{responseBuckets.Worsening}</p>
+              </div>
+            </div>
+            {worseningList.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {worseningList.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm text-xs">
+                    <span className="font-medium text-emerald-700">{p.name}</span>
+                    <Link to={`/treatment-recommendation/${p.id}`} className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700">Open</Link>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
 
         <Card className="rounded-2xl bg-gradient-to-br from-white via-rose-50 to-rose-100 ring-1 ring-rose-100/70 shadow-md px-5 py-5 space-y-4">
           <div className="flex items-start justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-500">Follow-up priorities</h3>
-            <span className="text-[11px] text-rose-400">High distress / low eGFR</span>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-500">At‑risk follow‑up</h3>
+            <span className="text-[11px] text-rose-400">Rising DDS ∧ no upcoming appt (14d)</span>
           </div>
           <div className="grid gap-3 text-xs text-rose-700">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-400 mb-2">High distress (DDS &gt; 1.5)</p>
-              {highDistressPatients.length === 0 ? (
-                <span className="text-[11px] text-rose-400">No patients flagged.</span>
-              ) : (
-                <ul className="space-y-2">
-                  {highDistressPatients.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between rounded-lg bg-white/80 border border-rose-100 px-3 py-2 shadow-sm">
-                      <div>
-                        <p className="text-sm font-semibold text-rose-700">{p.name}</p>
-                        <p className="text-[11px] text-rose-400">DDS Δ {p.dds_trend_1_3 ?? '—'}</p>
-                      </div>
-                      <Link to={`/treatment-recommendation/${p.id}`} className="text-[11px] font-semibold text-rose-500 hover:text-rose-600">
-                        Open
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <AtRiskList patients={filtered} appts={appts} />
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-400 mb-2">Renal watch (eGFR &lt; 60)</p>
               {lowEgfrPatients.length === 0 ? (
@@ -411,3 +496,49 @@ const TreatmentRecommendationDashboard = () => {
 };
 
 export default TreatmentRecommendationDashboard;
+
+function AtRiskList({ patients, appts }) {
+  const todayLocal = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const addDays = (str, n) => {
+    const [y,m,d] = str.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    dt.setDate(dt.getDate() + n);
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth()+1).padStart(2,'0');
+    const dd = String(dt.getDate()).padStart(2,'0');
+    return `${yy}-${mm}-${dd}`;
+  };
+
+  const today = todayLocal();
+  const to14 = addDays(today, 14);
+  const hasUpcoming = (pid) => appts.some(a => a.patient_id === pid && a.date > today && a.date <= to14);
+  const rising = (p) => (Number(p.dds_trend_1_3) || 0) > 1;
+
+  const candidates = patients.filter(p => rising(p) && !hasUpcoming(p.id)).slice(0, 5);
+
+  if (candidates.length === 0) {
+    return <span className="text-[11px] text-rose-400">No at‑risk follow‑ups detected.</span>;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {candidates.map((p) => (
+        <li key={p.id} className="flex items-center justify-between rounded-lg bg-white/80 border border-rose-100 px-3 py-2 shadow-sm">
+          <div>
+            <p className="text-sm font-semibold text-rose-700">{p.name}</p>
+            <p className="text-[11px] text-rose-400">DDS Δ {p.dds_trend_1_3 ?? '—'} • no appointment in next 14d</p>
+          </div>
+          <Link to={`/appointments`} className="text-[11px] font-semibold text-rose-500 hover:text-rose-600">
+            Schedule
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}

@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\UserNotificationController;
+use App\Http\Controllers\AppointmentController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('web')->post('/login', [AuthController::class, 'login']);
@@ -48,5 +49,13 @@ Route::middleware(['web', 'auth:web'])->prefix('admin')->group(function () {
     Route::patch('/patients/{id}/assign-doctor', [PatientController::class, 'assignDoctor']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+});
+
+Route::middleware(['web', 'auth:web'])->group(function () {
+    Route::get('/appointments', [AppointmentController::class, 'index']);
+    Route::get('/appointments/{id}', [AppointmentController::class, 'show']);
+    Route::post('/appointments', [AppointmentController::class, 'store']);
+    Route::put('/appointments/{id}', [AppointmentController::class, 'update']);
+    Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']);
 });
 

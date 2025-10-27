@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Calendar, Clock, User, AlertCircle } from 'lucide-react';
+import { appointmentsApi } from '@/api/appointments';
+import { patientsApi } from '@/api/patients';
+import { useUser } from '@/UserContext.jsx';
 
 export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
   const [formData, setFormData] = useState({
@@ -11,20 +14,23 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
   const [patients, setPatients] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const { user } = useUser();
 
-  // Fetch patients for the dropdown
-  // useEffect(() => {
-  //   const fetchPatients = async () => {
-  //     try {
-  //       const response = await fetch('/api/patients');
-  //       const data = await response.json();
-  //       setPatients(data);
-  //     } catch (err) {
-  //       setError('Failed to load patients');
-  //     }
-  //   };
-  //   fetchPatients();
-  // }, []);
+  // Fetch doctor's patients for dropdown when opened
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setError('');
+        const { data } = await patientsApi.list({ perPage: 100, page: 1, ...(user?.role === 'doctor' ? { doctor_id: user.id } : {}) });
+        if (!cancelled) setPatients(data || []);
+      } catch (e) {
+        if (!cancelled) setError('Failed to load patients');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,28 +52,32 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
     setError('');
 
     try {
-      // Replace with your actual API endpoint
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create appointment');
-      }
-
-      const newAppointment = await response.json();
+      const payload = {
+        patient_id: Number(formData.patientId),
+        doctor_id: Number(user?.id),
+        date: formData.date,
+        time: formData.time,
+        notes: formData.notes || null,
+        type: 'Consultation',
+        duration_minutes: 30,
+        status: 'Scheduled',
+      };
+      const created = await appointmentsApi.create(payload);
+      const patientName = patients.find(p => p.id === Number(formData.patientId))?.name || 'Patient';
       onCreate({
-        ...newAppointment,
-        patientName: 'John Doe', // This should come from the API
-        status: 'Scheduled'
+        id: created?.id,
+        patientId: payload.patient_id,
+        patientName,
+        date: payload.date,
+        time: payload.time,
+        status: payload.status,
+        notes: payload.notes || '',
+        type: payload.type,
+        duration: `${payload.duration_minutes} min`,
       });
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(err?.message || 'Failed to create appointment');
     } finally {
       setIsLoading(false);
     }
@@ -113,13 +123,11 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
                 required
               >
                 <option value="">Select a patient</option>
-                {/* {patients.map(patient => (
+                {patients.map((patient) => (
                   <option key={patient.id} value={patient.id}>
                     {patient.name}
                   </option>
-                ))} */}
-                <option value="1">John Doe</option>
-                <option value="2">Jane Smith</option>
+                ))}
               </select>
             </div>
           </div>
