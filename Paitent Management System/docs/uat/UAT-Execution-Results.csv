@@ -1,7 +1,7 @@
 ID,Scenario,Preconditions,Steps,Expected,Actual,Status,Evidence,FIX,,
 AUTH-01,Register user,Services up,"Open /register, fill valid data, submit","User created, redirect to /",As expected,PASS,View evidence,,,Home
 AUTH-02,Login user,Registered account,Sign in with valid credentials,Redirect to /,As expected,PASS,View evidence,,,
-AUTH-03,Unauthorized redirect,Logged out,Open /patients,Redirect to SignIn,“GET /api/admin/users returned 200 with data while logged out.”,FAIL,View evidence,View fix,,
+AUTH-03,Unauthorized redirect,Logged out,Open /patients,Redirect to SignIn,ï¿½GET /api/admin/users returned 200 with data while logged out.ï¿½,FAIL,View evidence,View fix,,
 AUTH-04,Session persists,Logged in,Refresh browser,Still authenticated,As expected,PASS,View evidence,,,
 ,,,,,,,,,,
 RBAC-01,Patient-only route hidden,Logged in as doctor,Open /profile/edit,Redirect/hidden,Redirects back to localhost:5173,PASS,View evidence,,,
@@ -39,3 +39,7 @@ ADM-02,Manage patients,Admin logged in,Assign doctor,Success state,Fail to assig
 ,,,,,,,,,,
 INT-01,CORS ok,URLs set,Frontend->FastAPI and Frontend->Laravel,No CORS errors,,,./images/int-01.png,,,
 INT-02,SPA catch-all,Laravel serving,Refresh deep route,Index served,,,./images/int-02.png,,,
+
+APPT-10,Create appointment,Required fields ready,Open Create modalâ†’Submit,New appointment appears in correct section,As expected,PASS,View evidence,,,
+APPT-13,Delete/cancel appointment,Existing appointment,Delete/Cancelâ†’Confirm,Removed from list and stats update,As expected,PASS,View evidence,,,
+APPT-12,Edit appointment,Existing appointment,Edit time/dateâ†’Save,Card updates/moves section if boundary crossed,As expected,PASS,View evidence,,,

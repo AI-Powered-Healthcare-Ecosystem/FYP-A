@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, Clock, User, Search, ChevronLeft, ChevronRight, Users as UsersIcon } from 'lucide-react';
+import { Plus, Calendar, Clock, User, Search, ChevronLeft, ChevronRight, Users as UsersIcon, Pencil, Trash2, X } from 'lucide-react';
 import CreateAppointmentModal from './CreateAppointmentModal';
 import Card from '@/components/Card.jsx';
 import { useUser } from '@/UserContext.jsx';
@@ -148,6 +148,12 @@ export default function Appointments() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useUser();
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ id: null, date: '', time: '', notes: '' });
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [clearingAll, setClearingAll] = useState(false);
 
   const getTodayLocalStr = () => {
     const d = new Date();
@@ -156,6 +162,26 @@ export default function Appointments() {
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`; // local YYYY-MM-DD
   };
+
+  const parseTimeToDate = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return null;
+    const [h, m] = String(timeStr).split(':').map(Number);
+    const [yy, mm, dd] = String(dateStr).split('-').map(Number);
+    return new Date(yy, (mm || 1) - 1, dd || 1, h || 0, m || 0, 0, 0);
+  };
+
+  const isLate = (appt) => {
+    if (!appt?.date || !appt?.time) return false;
+    const today = getTodayLocalStr();
+    if (appt.date !== today) return false;
+    const start = parseTimeToDate(appt.date, appt.time);
+    if (!start) return false;
+    const now = new Date();
+    const graceMs = 5 * 60 * 1000; // 5 minutes grace
+    const isScheduled = (appt.status || 'Scheduled').toLowerCase() === 'scheduled';
+    return isScheduled && now.getTime() > start.getTime() + graceMs;
+  };
+  const isNoShow = (appt) => (appt?.status || '').toLowerCase() === 'noshow';
 
   // Load appointments for this doctor
   useEffect(() => {
@@ -177,6 +203,7 @@ export default function Appointments() {
           ...a,
           patientName: a.patientName ?? a.patient_name ?? 'Patient',
           duration: a.duration ?? (a.duration_minutes ? `${a.duration_minutes} min` : undefined),
+          isLate: isLate(a), // Add this line
         }));
 
         const today = getTodayLocalStr();
@@ -209,6 +236,84 @@ export default function Appointments() {
       setUpcomingAppointments(upcoming);
       return next;
     });
+  };
+
+  const recomputeLists = (rows) => {
+    const today = getTodayLocalStr();
+    const todays = rows.filter(a => a.date === today);
+    const upcoming = rows
+      .filter(a => a.date && a.date > today)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    setTodayAppointments(todays);
+    setUpcomingAppointments(upcoming);
+  };
+
+  const openEdit = (appt) => {
+    setEditForm({ id: appt.id, date: appt.date || '', time: appt.time || '', notes: appt.notes || '' });
+    setEditOpen(true);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e?.preventDefault?.();
+    if (!editForm.id || !editForm.date || !editForm.time) return;
+    try {
+      setSaving(true);
+      const payload = { date: editForm.date, time: editForm.time, notes: editForm.notes || null };
+      const updated = await appointmentsApi.update(editForm.id, payload);
+      setAppointments((prev) => {
+        const next = prev.map((a) => (a.id === editForm.id ? { ...a, ...payload } : a));
+        recomputeLists(next);
+        return next;
+      });
+      setEditOpen(false);
+    } catch (_) {
+      // keep silent per style
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDelete = (id) => setDeletingId(id);
+  const cancelDelete = () => setDeletingId(null);
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    try {
+      setSaving(true);
+      await appointmentsApi.remove(deletingId);
+      setAppointments((prev) => {
+        const next = prev.filter((a) => a.id !== deletingId);
+        recomputeLists(next);
+        return next;
+      });
+      setDeletingId(null);
+    } catch (_) {
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      setClearingAll(true);
+      const today = getTodayLocalStr();
+      const todays = appointments.filter((a) => a.date === today);
+      const ids = todays.map((a) => a.id).filter(Boolean);
+      await Promise.all(ids.map((id) => appointmentsApi.remove(id)));
+      setAppointments((prev) => {
+        const remaining = prev.filter((a) => a.date !== today);
+        recomputeLists(remaining);
+        return remaining;
+      });
+      setConfirmClearAll(false);
+    } catch (_) {
+    } finally {
+      setClearingAll(false);
+    }
   };
 
   if (isLoading) return <div className="p-6">Loading appointments...</div>;
@@ -245,6 +350,14 @@ export default function Appointments() {
               >
                 <Plus size={16} className="mr-2" /> Create Appointment
               </button>
+              {todayAppointments.length > 0 && (
+                <button
+                  onClick={() => setConfirmClearAll(true)}
+                  className="inline-flex items-center justify-center h-10 px-3 rounded-md border border-rose-600 bg-white text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                >
+                  Clear all
+                </button>
+              )}
             </div>
           </div>
         </Card>
@@ -266,20 +379,67 @@ export default function Appointments() {
             <div className="divide-y divide-slate-100">
               {todayAppointments.length > 0 ? (
                 todayAppointments.map((appointment) => (
-                  <div key={appointment.id} className="p-4 hover:bg-slate-50">
+                  <div key={appointment.id} className={`p-4 hover:bg-slate-50 ${ (isLate(appointment) || isNoShow(appointment)) ? 'bg-gradient-to-r from-white via-rose-50 to-rose-100' : ''}`}>
                     <div className="flex items-start">
-                      <div className="flex-shrink-0 h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center ring-1 ring-emerald-200/60">
-                        <User className="h-6 w-6 text-emerald-600" />
+                      <div className={`flex-shrink-0 h-12 w-12 rounded-full flex items-center justify-center ring-1 ${ (isLate(appointment) || isNoShow(appointment)) ? 'bg-rose-100 ring-rose-200/60' : 'bg-emerald-100 ring-emerald-200/60'}`}>
+                        <User className={`h-6 w-6 ${ (isLate(appointment) || isNoShow(appointment)) ? 'text-rose-600' : 'text-emerald-600'}`} />
                       </div>
                       <div className="ml-4 flex-1">
                         <div className="flex items-center justify-between">
                           <h4 className="text-sm font-semibold text-slate-900">{appointment.patientName || appointment.patient_name || 'Patient'}</h4>
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/60">
-                            {appointment.time}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 inline-flex text-[10px] leading-5 font-semibold rounded-full ring-1 ${
+                              (appointment.status || 'Scheduled').toLowerCase() === 'completed' ? 'bg-emerald-100 text-emerald-700 ring-emerald-200/60' :
+                              (appointment.status || 'Scheduled').toLowerCase() === 'noshow' ? 'bg-rose-100 text-rose-700 ring-rose-200/60' :
+                              'bg-sky-100 text-sky-700 ring-sky-200/60'
+                            }`}>
+                              {(appointment.status || 'Scheduled')}
+                            </span>
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${(isLate(appointment) || isNoShow(appointment)) ? 'bg-rose-100 text-rose-800 ring-1 ring-rose-200/60' : 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/60'}`}>
+                              {appointment.time}
+                            </span>
+                          </div>
                         </div>
                         <p className="text-sm text-slate-500">{appointment.type}</p>
                         <p className="text-sm text-slate-500">{appointment.notes}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button onClick={() => openEdit(appointment)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">
+                            <Pencil size={14} /> Edit
+                          </button>
+                          <button onClick={() => confirmDelete(appointment.id)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-rose-200 text-rose-700 hover:bg-rose-50">
+                            <Trash2 size={14} /> Delete
+                          </button>
+                          {(appointment.status || 'Scheduled').toLowerCase() === 'scheduled' && (
+                            <>
+                              <button onClick={async () => {
+                                try {
+                                  setSaving(true);
+                                  await appointmentsApi.update(appointment.id, { status: 'Completed' });
+                                  setAppointments(prev => {
+                                    const next = prev.map(a => a.id === appointment.id ? { ...a, status: 'Completed' } : a);
+                                    recomputeLists(next);
+                                    return next;
+                                  });
+                                } finally { setSaving(false); }
+                              }} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                                Mark Completed
+                              </button>
+                              <button onClick={async () => {
+                                try {
+                                  setSaving(true);
+                                  await appointmentsApi.update(appointment.id, { status: 'NoShow' });
+                                  setAppointments(prev => {
+                                    const next = prev.map(a => a.id === appointment.id ? { ...a, status: 'NoShow' } : a);
+                                    recomputeLists(next);
+                                    return next;
+                                  });
+                                } finally { setSaving(false); }
+                              }} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-rose-200 text-rose-700 hover:bg-rose-50">
+                                Mark No-Show
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -295,7 +455,6 @@ export default function Appointments() {
 
         <div className="space-y-6">
           <CalendarWidget />
-          
           <div className="rounded-2xl bg-gradient-to-br from-white via-sky-50 to-sky-100 shadow-md ring-1 ring-sky-100/70 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100">
               <h3 className="text-base font-semibold text-slate-800">Upcoming Appointments</h3>
@@ -303,10 +462,10 @@ export default function Appointments() {
             <div className="divide-y divide-slate-100">
               {upcomingAppointments.length > 0 ? (
                 upcomingAppointments.slice(0, 4).map((appointment) => (
-                  <div key={appointment.id} className="p-4 hover:bg-slate-50">
+                  <div key={appointment.id} className={`p-4 hover:bg-slate-50 ${(isLate(appointment) || isNoShow(appointment)) ? 'bg-gradient-to-r from-white via-rose-50 to-rose-100' : ''}`}>
                     <div className="flex">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center ring-1 ring-sky-200/60">
-                        <Calendar className="h-5 w-5 text-sky-600" />
+                      <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ring-1 ${(isLate(appointment) || isNoShow(appointment)) ? 'bg-rose-100 ring-rose-200/60' : 'bg-sky-100 ring-sky-200/60'}`}>
+                        <Calendar className={`h-5 w-5 ${(isLate(appointment) || isNoShow(appointment)) ? 'text-rose-600' : 'text-sky-600'}`} />
                       </div>
                       <div className="ml-4">
                         <div className="flex items-center">
@@ -316,14 +475,20 @@ export default function Appointments() {
                           </span>
                         </div>
                         <p className="text-sm text-slate-500">{appointment.time} • {appointment.duration || (appointment.duration_minutes ? `${appointment.duration_minutes} min` : '')}</p>
+                        <div className="mt-2 flex gap-2">
+                          <button onClick={() => openEdit(appointment)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">
+                            <Pencil size={14} /> Edit
+                          </button>
+                          <button onClick={() => confirmDelete(appointment.id)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-rose-200 text-rose-700 hover:bg-rose-50">
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-6 text-center text-slate-500">
-                  No upcoming appointments
-                </div>
+                <div className="p-6 text-center text-slate-500">No upcoming appointments</div>
               )}
               {upcomingAppointments.length > 4 && (
                 <div className="px-6 py-4 text-center border-t border-gray-200">
@@ -342,6 +507,61 @@ export default function Appointments() {
         onClose={() => setIsModalOpen(false)}
         onCreate={handleCreateAppointment}
       />
+
+      {editOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="w-11/12 max-w-md rounded-xl bg-white shadow-xl ring-1 ring-slate-200 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-slate-800">Edit Appointment</h3>
+              <button onClick={() => setEditOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleUpdateSubmit} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                <input type="date" name="date" value={editForm.date} onChange={handleEditChange} required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Time</label>
+                <input type="time" name="time" value={editForm.time} onChange={handleEditChange} required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                <textarea name="notes" rows={3} value={editForm.notes} onChange={handleEditChange} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <div className="pt-2 flex justify-end gap-2">
+                <button type="button" onClick={() => setEditOpen(false)} className="px-3 py-2 text-sm rounded-md border border-slate-200">Cancel</button>
+                <button type="submit" disabled={saving} className="px-3 py-2 text-sm rounded-md bg-emerald-600 text-white disabled:opacity-50">{saving ? 'Saving...' : 'Save changes'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deletingId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="w-11/12 max-w-sm rounded-xl bg-white shadow-xl ring-1 ring-slate-200 p-5">
+            <div className="mb-2 text-slate-800 font-semibold">Delete appointment?</div>
+            <p className="text-sm text-slate-600 mb-4">This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={cancelDelete} className="px-3 py-2 text-sm rounded-md border border-slate-200">Cancel</button>
+              <button onClick={handleDelete} disabled={saving} className="px-3 py-2 text-sm rounded-md bg-rose-600 text-white disabled:opacity-50">{saving ? 'Deleting...' : 'Delete'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmClearAll && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="w-11/12 max-w-sm rounded-xl bg-white shadow-xl ring-1 ring-slate-200 p-5">
+            <div className="mb-2 text-slate-800 font-semibold">Clear all appointments?</div>
+            <p className="text-sm text-slate-600 mb-4">This will permanently delete all listed appointments.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmClearAll(false)} className="px-3 py-2 text-sm rounded-md border border-slate-200">Cancel</button>
+              <button onClick={handleClearAll} disabled={clearingAll} className="px-3 py-2 text-sm rounded-md bg-rose-600 text-white disabled:opacity-50">{clearingAll ? 'Clearing...' : 'Clear all'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

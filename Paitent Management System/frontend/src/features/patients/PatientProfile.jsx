@@ -2,9 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useUser } from '@/UserContext.jsx';
 import { useParams, Link } from 'react-router-dom';
 import Chart from 'chart.js/auto';
-import { Activity, CalendarClock, Droplet, Edit3, Scale, ShieldCheck, Stethoscope, User as UserIcon } from 'lucide-react';
+import { Activity, CalendarClock, Droplet, Edit3, Scale, ShieldCheck, Stethoscope, User as UserIcon, X, Calendar, Clock, AlertCircle } from 'lucide-react';
 import Card from '@/components/Card.jsx';
 import { patientsApi } from '../../api/patients';
+import { appointmentsApi } from '@/api/appointments';
 
 const PatientProfile = () => {
   const { id } = useParams();
@@ -12,6 +13,12 @@ const PatientProfile = () => {
   const [patient, setPatient] = useState(null);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
+  const [apptOpen, setApptOpen] = useState(false);
+  const [apptForm, setApptForm] = useState({ date: '', time: '', notes: '' });
+  const [apptLoading, setApptLoading] = useState(false);
+  const [apptError, setApptError] = useState('');
+  const [upcoming, setUpcoming] = useState([]);
+  const [upcomingError, setUpcomingError] = useState('');
   const formatDate = (date) =>
     date
       ? new Date(date).toLocaleDateString('en-US', {
@@ -114,6 +121,49 @@ const PatientProfile = () => {
     });
   }, [patient]);
 
+  // Load upcoming appointments for this patient
+  useEffect(() => {
+    let cancelled = false;
+    const getTodayLocalStr = () => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const parseTimeToDate = (dateStr, timeStr) => {
+      if (!dateStr) return null;
+      const [yy, mm, dd] = String(dateStr).split('-').map(Number);
+      const [h, m] = String(timeStr || '00:00').split(':').map(Number);
+      return new Date(yy, (mm || 1) - 1, dd || 1, h || 0, m || 0, 0, 0);
+    };
+    (async () => {
+      try {
+        setUpcomingError('');
+        const { data } = await appointmentsApi.list({ perPage: 100, page: 1, patient_id: Number(id) });
+        const today = getTodayLocalStr();
+        const now = new Date();
+        const rows = (data || []).filter(a => a.patient_id === Number(id));
+        const list = rows
+          .filter(a => {
+            if (!a.date) return false;
+            if (a.date > today) return true;
+            if (a.date === today) {
+              const dt = parseTimeToDate(a.date, a.time);
+              return dt && dt > now;
+            }
+            return false;
+          })
+          .sort((a,b) => String(a.date).localeCompare(String(b.date)))
+          .slice(0,5);
+        if (!cancelled) setUpcoming(list);
+      } catch (e) {
+        if (!cancelled) setUpcomingError('Unable to load upcoming appointments');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
   if (!patient) {
     return (
       <div className="w-full px-6 md:px-10 lg:px-14 py-16 flex items-center justify-center text-slate-400 text-sm">
@@ -202,6 +252,15 @@ const PatientProfile = () => {
                 Edit profile
               </Link>
             )}
+            {(user?.role === 'doctor' || user?.role === 'admin') && (
+              <button
+                onClick={() => { setApptError(''); setApptForm({ date: '', time: '', notes: '' }); setApptOpen(true); }}
+                className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-500/90 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              >
+                <CalendarClock size={16} />
+                Make appointment
+              </button>
+            )}
           </div>
         </div>
       </Card>
@@ -271,8 +330,98 @@ const PatientProfile = () => {
             <VisitCard visit="Visit 2" hba1c={patient.hba1c_2nd_visit} fvg={patient.fvg_2} dds={(patient.dds_1 + patient.dds_3) / 2} />
             <VisitCard visit="Visit 3" hba1c={patient.hba1c_3rd_visit} fvg={patient.fvg_3} dds={patient.dds_3} />
           </div>
+          <div className="mt-5">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Upcoming appointments</p>
+            {upcomingError ? (
+              <span className="text-sm text-rose-500">{upcomingError}</span>
+            ) : upcoming.length === 0 ? (
+              <span className="text-sm text-slate-500">No upcoming appointments scheduled.</span>
+            ) : (
+              <ul className="space-y-2">
+                {upcoming.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between rounded-lg border border-sky-100 bg-white/80 px-3 py-2 shadow-sm">
+                    <span className="text-sm font-medium text-slate-700">{new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{a.time ? `, ${a.time}` : ''}</span>
+                    <span className="text-xs rounded-full bg-sky-50 text-sky-700 px-2 py-0.5 border border-sky-100">{a.type || 'Consultation'}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </Card>
       </div>
+      {apptOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="w-11/12 md:max-w-md rounded-xl bg-white shadow-xl ring-1 ring-slate-200 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-slate-800">Make Appointment</h3>
+              <button onClick={() => setApptOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            </div>
+            {apptError && (
+              <div className="mb-3 p-3 bg-red-50 text-red-700 rounded-md text-sm flex items-center">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                {apptError}
+              </div>
+            )}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!apptForm.date || !apptForm.time) { setApptError('Please select date and time'); return; }
+                try {
+                  setApptLoading(true);
+                  setApptError('');
+                  const payload = {
+                    patient_id: Number(id),
+                    doctor_id: Number(user?.id),
+                    date: apptForm.date,
+                    time: apptForm.time,
+                    notes: apptForm.notes || null,
+                    type: 'Consultation',
+                    duration_minutes: 30,
+                    status: 'Scheduled',
+                  };
+                  await appointmentsApi.create(payload);
+                  setApptOpen(false);
+                } catch (err) {
+                  setApptError(err?.message || 'Failed to create appointment');
+                } finally {
+                  setApptLoading(false);
+                }
+              }}
+              className="space-y-3"
+            >
+              <div className="text-sm text-slate-600">Patient: <span className="font-semibold text-slate-800">{patient.name}</span></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                  <div className="relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input type="date" value={apptForm.date} onChange={(e)=>setApptForm(f=>({...f,date:e.target.value}))} required className="mt-1 block w-full pl-10 pr-3 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Time</label>
+                  <div className="relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Clock className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input type="time" value={apptForm.time} onChange={(e)=>setApptForm(f=>({...f,time:e.target.value}))} required className="mt-1 block w-full pl-10 pr-3 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Notes (Optional)</label>
+                <textarea rows={3} value={apptForm.notes} onChange={(e)=>setApptForm(f=>({...f,notes:e.target.value}))} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Any additional notes about the appointment" />
+              </div>
+              <div className="pt-2 flex justify-end gap-2">
+                <button type="button" onClick={()=>setApptOpen(false)} className="px-3 py-2 text-sm rounded-md border border-slate-200">Cancel</button>
+                <button type="submit" disabled={apptLoading} className="px-3 py-2 text-sm rounded-md bg-indigo-600 text-white disabled:opacity-50">{apptLoading ? 'Creating...' : 'Create Appointment'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
