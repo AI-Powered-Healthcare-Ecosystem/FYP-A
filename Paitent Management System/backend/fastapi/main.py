@@ -115,12 +115,35 @@ logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
 app = FastAPI()
 
 # CORS
+def _load_cors_origins() -> list[str]:
+    # Accept comma-separated list in FRONTEND_ORIGINS, plus single FRONTEND_ORIGIN/LARAVEL_ORIGIN fallbacks
+    origins_raw = os.getenv("FRONTEND_ORIGINS", "")
+    origins = [o.strip() for o in origins_raw.split(",") if o.strip()]
+    fo = os.getenv("FRONTEND_ORIGIN")
+    lo = os.getenv("LARAVEL_ORIGIN")
+    if fo:
+        origins.append(fo.strip())
+    if lo:
+        origins.append(lo.strip())
+    # Sensible default to current Azure URL if nothing provided
+    if not origins:
+        origins = [
+            "https://104384876laravel-cwh4axg4d4h5f0ha.southeastasia-01.azurewebsites.net",
+        ]
+    # Deduplicate
+    dedup: list[str] = []
+    for o in origins:
+        if o and o not in dedup:
+            dedup.append(o)
+    logging.info(f"[CORS] allow_origins: {dedup}")
+    return dedup
+
+allow_origin_regex = os.getenv("FRONTEND_ORIGIN_REGEX")  # optional regex for wildcard subdomains
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        os.getenv("FRONTEND_ORIGIN", "https://104384876laravel-cwh4axg4d4h5f0ha.southeastasia-01.azurewebsites.net"),
-        os.getenv("LARAVEL_ORIGIN", "https://104384876laravel-cwh4axg4d4h5f0ha.southeastasia-01.azurewebsites.net"),
-    ],
+    allow_origins=_load_cors_origins(),
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
