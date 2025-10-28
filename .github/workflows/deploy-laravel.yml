@@ -44,6 +44,8 @@ jobs:
 
       # Install frontend dependencies and build directly into backend/public
       - name: Build frontend
+        env:
+          VITE_FASTAPI_URL: https://104384876fastapicontainer-hsa7h5c6febrdpgj.southeastasia-01.azurewebsites.net
         run: |
           cd "Paitent Management System/frontend"
           npm install
