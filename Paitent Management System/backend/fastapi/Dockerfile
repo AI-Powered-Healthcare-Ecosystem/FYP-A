@@ -28,4 +28,4 @@ COPY . /app
 # Expose expected port
 ENV PORT=8000
 # Run single worker to reduce memory pressure
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["python", "-m", "uvicorn", "backend.fastapi.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
