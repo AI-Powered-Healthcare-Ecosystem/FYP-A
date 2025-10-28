@@ -167,16 +167,20 @@ _embedder = None
 def get_ridge_model():
     global _ridge_model
     if _ridge_model is None:
-        import joblib
-        _ridge_model = joblib.load("ridge_best_model_1.pkl")
+        import joblib, os
+        base_dir = os.path.dirname(__file__)
+        model_path = os.path.join(base_dir, "ridge_best_model_1.pkl")
+        _ridge_model = joblib.load(model_path)
     return _ridge_model
 
 
 def get_therapy_model():
     global _therapy_pathline_model
     if _therapy_pathline_model is None:
-        import joblib
-        _therapy_pathline_model = joblib.load("therapy_effectiveness_model.pkl")
+        import joblib, os
+        base_dir = os.path.dirname(__file__)
+        model_path = os.path.join(base_dir, "therapy_effectiveness_model.pkl")
+        _therapy_pathline_model = joblib.load(model_path)
     return _therapy_pathline_model
 
 
