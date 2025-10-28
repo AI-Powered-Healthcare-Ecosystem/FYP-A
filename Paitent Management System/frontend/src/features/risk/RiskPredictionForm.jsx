@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { patientsApi } from '../../api/patients';
-import { fastApiClient } from '../../api/client';
+import { fastApiClient, laravelClient } from '../../api/client';
 import MetricBox from '../../components/MetricBox.jsx';
 import Card from '../../components/Card.jsx';
 import { LineChart, Activity as ActivityIcon, Lightbulb, TrendingUp } from 'lucide-react';
@@ -51,9 +51,9 @@ function RiskPredictionForm() {
           const apiBase = (import.meta.env.VITE_LARAVEL_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
           if (!force) {
             try {
-              const pRes = await fetch(`${apiBase}/api/patients/${id}`);
-              if (pRes.ok) {
-                const p = await pRes.json();
+              const pRes = await laravelClient.get(`/patients/${id}`);
+              if (pRes?.status === 200) {
+                const p = pRes.data;
                 if (p && p.last_risk_score != null) {
                   const numericRisk = parseFloat(p.last_risk_score);
                   const riskLabel = p.last_risk_label || mapNumericRisk(numericRisk);
@@ -95,24 +95,14 @@ function RiskPredictionForm() {
               label: riskLabel,
             });
             try {
-              const saveResponse = await fetch(`${apiBase}/api/patients/${id}/risk`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  score: numericRisk,
-                  label: riskLabel,
-                  model_version: predictionRes.data.model_version || 'risk_v1',
-                  predicted_at: new Date().toISOString(),
-                }),
-              });
-              
-              if (!saveResponse.ok) {
-                const errorText = await saveResponse.text();
-                console.error('❌ Laravel save failed:', saveResponse.status, errorText);
-              } else {
-                const saveData = await saveResponse.json();
-                console.log('✅ Risk saved to database:', saveData);
-              }
+              const payload = {
+                score: numericRisk,
+                label: riskLabel,
+                model_version: predictionRes.data.model_version || 'risk_v1',
+                predicted_at: new Date().toISOString(),
+              };
+              const saveResponse = await laravelClient.post(`/patients/${id}/risk`, payload);
+              console.log('✅ Risk saved to database:', saveResponse.data ?? saveResponse.status);
             } catch (e) {
               console.error('❌ Failed to persist risk to Laravel:', e);
             }
