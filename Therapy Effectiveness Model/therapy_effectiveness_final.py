@@ -28,7 +28,7 @@ CANDIDATE_CSV = [
     "/content/sample_data/therapy_effectiveness_synthetic.csv",
     "/mnt/data/therapy_effectiveness_synthetic.csv", 
 ]
-PIPELINE_PATH = "/content/therapy_effectiveness_pipeline.pkl"
+PIPELINE_PATH = "/content/therapy_effectiveness_final.pkl"
 PLOTS_DIR = "/content/plots"
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
@@ -277,3 +277,4 @@ def run_for_patient_id(patient_id: int) -> Dict[str, Any]:
         "plot_path": plot_path,
         "summary": summary,
     }
+
