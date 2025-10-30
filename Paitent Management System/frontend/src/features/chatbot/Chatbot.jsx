@@ -347,101 +347,20 @@ const MessageBubble = ({ message, patient, priorMessage }) => {
         ? 'self-end bg-gradient-to-br from-purple-500 to-blue-500 text-white'
         : 'self-start bg-white text-slate-700 border border-purple-100';
 
-    const insightTrigger = /(how.*doing|health.*status|overview|progress|report|trend|analysis|insight|summary|risk)/i;
-    const shouldRenderInsightExtras =
-        !isUser && patient && (insightTrigger.test(priorMessage?.text || '') || insightTrigger.test(message.text || ''));
+    // DISABLED: All visualizations removed for testing natural responses
+    // const insightTrigger = /(how.*doing|health.*status|overview|progress|report|trend|analysis|insight|summary|risk)/i;
+    // const shouldRenderInsightExtras = !isUser && patient && (insightTrigger.test(priorMessage?.text || '') || insightTrigger.test(message.text || ''));
+    const shouldRenderInsightExtras = false; // Force disable all visualizations
 
     return (
         <div className={`max-w-[78%] rounded-2xl px-4 py-3 shadow-sm ${wrapperClasses}`}>
             {!isUser ? (
                 <div className="space-y-4">
-                    {message.text.includes('##')
-                        ? message.text.split(/##\s+/).slice(1).map((section, secIndex) => {
-                              const [title, ...body] = section.split('\n');
-                              return (
-                                  <div key={secIndex} className="space-y-1">
-                                      <p className="text-sm font-semibold text-purple-500">{title.trim()}</p>
-                                      <div
-                                          className="text-sm leading-relaxed"
-                                          dangerouslySetInnerHTML={{
-                                              __html: parseMarkdownBold(body.join('\n').trim())
-                                          }}
-                                      />
-                                  </div>
-                              );
-                          })
-                        : (
-                              <div
-                                  className="text-sm leading-relaxed"
-                                  dangerouslySetInnerHTML={{ __html: parseMarkdownBold(message.text) }}
-                              />
-                          )}
-
-                    {shouldRenderInsightExtras && (
-                        <div className="space-y-4 rounded-2xl border border-purple-100 bg-white/80 px-4 py-4 text-slate-700">
-                            <p className="text-xs uppercase tracking-[0.2em] text-purple-300">Snapshot</p>
-                            <div className="space-y-5">
-                                {patient && (
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                        {buildMetricSummary(patient).map((metric) => (
-                                            <MetricBadge key={metric.label} metric={metric} />
-                                        ))}
-                                    </div>
-                                )}
-
-                                <div className="h-40">
-                                    <Line
-                                        data={{
-                                            labels: ['Visit 1', 'Visit 2', 'Visit 3'],
-                                            datasets: [
-                                                {
-                                                    label: 'HbA1c (%)',
-                                                    data: [patient.hba1c_1st_visit, patient.hba1c_2nd_visit, patient.hba1c_3rd_visit],
-                                                    borderColor: '#6366f1',
-                                                    backgroundColor: 'rgba(99,102,241,0.2)',
-                                                    tension: 0.4,
-                                                },
-                                                {
-                                                    label: 'FVG (mmol/L)',
-                                                    data: [patient.fvg_1, patient.fvg_2, patient.fvg_3],
-                                                    borderColor: '#10b981',
-                                                    backgroundColor: 'rgba(16,185,129,0.2)',
-                                                    tension: 0.4,
-                                                },
-                                                {
-                                                    label: 'DDS',
-                                                    data: [patient.dds_1, (patient.dds_1 + patient.dds_3) / 2, patient.dds_3],
-                                                    borderColor: '#a855f7',
-                                                    backgroundColor: 'rgba(216,180,254,0.2)',
-                                                    tension: 0.4,
-                                                    yAxisID: 'y1',
-                                                },
-                                            ],
-                                        }}
-                                        options={{
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            scales: {
-                                                y: { position: 'left', title: { display: true, text: 'HbA1c / FVG' } },
-                                                y1: {
-                                                    position: 'right',
-                                                    grid: { drawOnChartArea: false },
-                                                    title: { display: true, text: 'DDS' },
-                                                },
-                                            },
-                                            plugins: { legend: { position: 'top' } },
-                                        }}
-                                    />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <ProgressBar label="HbA1c (latest)" value={patient.hba1c_3rd_visit} max={12} />
-                                    <ProgressBar label="FVG (latest)" value={patient.fvg_3} max={15} />
-                                    <ProgressBar label="DDS (latest)" value={patient.dds_3} max={5} />
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* Simple text rendering - preserves markdown formatting */}
+                    <div
+                        className="text-sm leading-relaxed whitespace-pre-wrap"
+                        dangerouslySetInnerHTML={{ __html: parseMarkdownBold(message.text) }}
+                    />
                 </div>
             ) : (
                 <p className="text-sm leading-relaxed">{message.text}</p>

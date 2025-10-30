@@ -351,7 +351,7 @@ function RiskPredictionForm() {
               max={12}
               targetLow={4.5}
               targetHigh={6.5}
-              color="#0ea5e9"
+              color="#10b981"
             />
             <TrendCard
               title="FVG Trend"

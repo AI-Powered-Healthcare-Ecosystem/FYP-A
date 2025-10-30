@@ -12,8 +12,14 @@ const CreatePatient = () => {
     name: '',
     age: '',
     gender: '',
+    ethnicity: '',
     height_cm: '',
     weight_kg: '',
+    weight1: '',
+    weight2: '',
+    weight3: '',
+    bmi1: '',
+    bmi3: '',
     physical_activity: '',
     insulinType: '',
     medicalHistory: '',
@@ -26,7 +32,13 @@ const CreatePatient = () => {
     hba1c1: '',
     hba1c2: '',
     hba1c3: '',
+    sbp: '',
+    dbp: '',
     egfr: '',
+    egfr1: '',
+    egfr3: '',
+    uacr1: '',
+    uacr3: '',
     dds_1: '',
     dds_3: '',
     first_visit_date: '',
@@ -48,18 +60,29 @@ const CreatePatient = () => {
 
     const enrichedData = {
       ...formData,
-      fvg: parseFloat(formData.fvg),
-      fvg_1: parseFloat(formData.fvg_1),
-      fvg_2: parseFloat(formData.fvg_2),
-      fvg_3: parseFloat(formData.fvg_3),
-      hba1c1: parseFloat(formData.hba1c1),
-      hba1c2: parseFloat(formData.hba1c2),
-      hba1c3: parseFloat(formData.hba1c3),
-      egfr: parseFloat(formData.egfr),
-      dds_1: parseFloat(formData.dds_1),
-      dds_3: parseFloat(formData.dds_3),
-      height_cm: parseFloat(formData.height_cm),
-      weight_kg: parseFloat(formData.weight_kg),
+      fvg: parseFloat(formData.fvg) || null,
+      fvg_1: parseFloat(formData.fvg_1) || null,
+      fvg_2: parseFloat(formData.fvg_2) || null,
+      fvg_3: parseFloat(formData.fvg_3) || null,
+      hba1c1: parseFloat(formData.hba1c1) || null,
+      hba1c2: parseFloat(formData.hba1c2) || null,
+      hba1c3: parseFloat(formData.hba1c3) || null,
+      sbp: parseFloat(formData.sbp) || null,
+      dbp: parseFloat(formData.dbp) || null,
+      egfr: parseFloat(formData.egfr) || null,
+      egfr1: parseFloat(formData.egfr1) || null,
+      egfr3: parseFloat(formData.egfr3) || null,
+      uacr1: parseFloat(formData.uacr1) || null,
+      uacr3: parseFloat(formData.uacr3) || null,
+      dds_1: parseFloat(formData.dds_1) || null,
+      dds_3: parseFloat(formData.dds_3) || null,
+      height_cm: parseFloat(formData.height_cm) || null,
+      weight_kg: parseFloat(formData.weight_kg) || null,
+      weight1: parseFloat(formData.weight1) || null,
+      weight2: parseFloat(formData.weight2) || null,
+      weight3: parseFloat(formData.weight3) || null,
+      bmi1: parseFloat(formData.bmi1) || null,
+      bmi3: parseFloat(formData.bmi3) || null,
       first_visit_date: formData.first_visit_date,
       second_visit_date: formData.second_visit_date,
       third_visit_date: formData.third_visit_date
@@ -150,9 +173,10 @@ const CreatePatient = () => {
         <Card className="rounded-2xl bg-white shadow-md ring-1 ring-indigo-100/70 px-6 py-6 space-y-6">
           <SectionHeader icon="🧍‍♂️" title="Basic information" subtitle="Demographics and lifestyle" />
           <div className="grid md:grid-cols-2 gap-4">
-            <Input label="Full name" name="name" value={formData.name} onChange={handleChange} placeholder="Enter patient’s full name" />
+            <Input label="Full name" name="name" value={formData.name} onChange={handleChange} placeholder="Enter patient's full name" />
             <Input label="Age" name="age" type="number" value={formData.age} onChange={handleChange} placeholder="Enter age" />
             <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
+            <Select label="Ethnicity" name="ethnicity" value={formData.ethnicity} onChange={handleChange} options={["Asian", "Caucasian", "African", "Hispanic", "Other"]} />
             <Select label="Insulin regimen type" name="insulinType" value={formData.insulinType} onChange={handleChange} options={["BB", "PTDS", "PBD"]} />
             <Input label="Height (cm)" name="height_cm" type="number" step="0.1" value={formData.height_cm} onChange={handleChange} placeholder="170.0" />
             <Input label="Weight (kg)" name="weight_kg" type="number" step="0.1" value={formData.weight_kg} onChange={handleChange} placeholder="68.5" />
@@ -189,11 +213,38 @@ const CreatePatient = () => {
             </div>
           </Fieldset>
 
-          <Fieldset title="Other clinical indicators">
+          <Fieldset title="Body composition per visit">
             <div className="grid md:grid-cols-3 gap-4">
-              <Input name="egfr" label="eGFR" value={formData.egfr} onChange={handleChange} placeholder="mL/min/1.73m²" />
-              <Input name="dds_1" label="DDS (1st reading)" value={formData.dds_1} onChange={handleChange} placeholder="Score" />
-              <Input name="dds_3" label="DDS (3rd reading)" value={formData.dds_3} onChange={handleChange} placeholder="Score" />
+              <Input name="weight1" label="Weight (Visit 1)" type="number" step="0.1" value={formData.weight1} onChange={handleChange} placeholder="kg" />
+              <Input name="weight2" label="Weight (Visit 2)" type="number" step="0.1" value={formData.weight2} onChange={handleChange} placeholder="kg" />
+              <Input name="weight3" label="Weight (Visit 3)" type="number" step="0.1" value={formData.weight3} onChange={handleChange} placeholder="kg" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <Input name="bmi1" label="BMI (Visit 1)" type="number" step="0.1" value={formData.bmi1} onChange={handleChange} placeholder="kg/m²" />
+              <Input name="bmi3" label="BMI (Visit 3)" type="number" step="0.1" value={formData.bmi3} onChange={handleChange} placeholder="kg/m²" />
+            </div>
+          </Fieldset>
+
+          <Fieldset title="Blood pressure & renal function">
+            <div className="grid md:grid-cols-2 gap-4">
+              <Input name="sbp" label="Systolic BP" type="number" value={formData.sbp} onChange={handleChange} placeholder="mmHg" />
+              <Input name="dbp" label="Diastolic BP" type="number" value={formData.dbp} onChange={handleChange} placeholder="mmHg" />
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <Input name="egfr" label="eGFR (baseline)" type="number" step="0.1" value={formData.egfr} onChange={handleChange} placeholder="mL/min/1.73m²" />
+              <Input name="egfr1" label="eGFR (Visit 1)" type="number" step="0.1" value={formData.egfr1} onChange={handleChange} placeholder="mL/min/1.73m²" />
+              <Input name="egfr3" label="eGFR (Visit 3)" type="number" step="0.1" value={formData.egfr3} onChange={handleChange} placeholder="mL/min/1.73m²" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <Input name="uacr1" label="UACR (Visit 1)" type="number" step="0.1" value={formData.uacr1} onChange={handleChange} placeholder="mg/g" />
+              <Input name="uacr3" label="UACR (Visit 3)" type="number" step="0.1" value={formData.uacr3} onChange={handleChange} placeholder="mg/g" />
+            </div>
+          </Fieldset>
+
+          <Fieldset title="Diabetes distress scale">
+            <div className="grid md:grid-cols-2 gap-4">
+              <Input name="dds_1" label="DDS (1st reading)" type="number" step="0.01" value={formData.dds_1} onChange={handleChange} placeholder="Score" />
+              <Input name="dds_3" label="DDS (3rd reading)" type="number" step="0.01" value={formData.dds_3} onChange={handleChange} placeholder="Score" />
             </div>
           </Fieldset>
 

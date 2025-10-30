@@ -429,8 +429,8 @@ const TreatmentRecommendationDashboard = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <Metric label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="indigo" />
-              <Metric label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="emerald" />
+              <Metric label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="emerald" />
+              <Metric label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="blue" />
               <Metric label="DDS Δ" value={p.dds_trend_1_3 ?? '—'} tone="purple" />
               <Metric label="eGFR" value={`${p.egfr ?? '—'} mL/min`} tone="blue" />
             </div>

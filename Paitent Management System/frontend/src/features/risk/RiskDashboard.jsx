@@ -171,6 +171,11 @@ const RiskDashboard = () => {
 
   const criticalCount = Object.values(riskResults).filter((r) => r.label === 'Critical').length;
   const highRiskShare = totalPredictions ? Math.round((highRiskCount / totalPredictions) * 100) : 0;
+  const normalCount = riskCounts['Normal'] || 0;
+  const atRiskCount = riskCounts['At Risk'] || 0;
+  const moderateCount = riskCounts['Moderate Risk'] || 0;
+  const riskyCount = riskCounts['Risky'] || 0;
+  const normalModerateCount = normalCount + atRiskCount + moderateCount + riskyCount;
   const recentHighRisk = patients
     .filter((p) => {
       const label = riskResults[p.id]?.label;
@@ -181,7 +186,7 @@ const RiskDashboard = () => {
       const bVal = parseFloat(riskResults[b.id]?.value ?? '-Infinity');
       return bVal - aVal;
     })
-    .slice(0, 4);
+    .slice(0, 8);
 
   const riskGradientHeading = 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500';
 
@@ -237,12 +242,12 @@ const RiskDashboard = () => {
                   placeholder="Search patients..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-full border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-400"
+                  className="w-full rounded-full border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-400"
                 />
               </div>
               <button
                 onClick={() => runPredictions(patients, true)}
-                className="inline-flex items-center justify-center gap-1.5 text-sm px-3 py-2 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="inline-flex items-center justify-center gap-1.5 text-sm px-3 py-2 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 type="button"
               >
                 <RefreshCcw size={16} /> Re-run Predictions
@@ -255,7 +260,7 @@ const RiskDashboard = () => {
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Filters</h3>
             <button
-              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
               onClick={clearFilters}
               type="button"
             >
@@ -264,18 +269,20 @@ const RiskDashboard = () => {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <div className="flex flex-wrap items-center bg-white border border-gray-200 rounded-md p-1 text-xs font-medium gap-1">
-              {riskOptions.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setRiskFilter(opt)}
-                  className={`px-2.5 py-1 rounded transition ${riskFilter === opt ? riskActiveClass(opt) : 'text-gray-600 hover:bg-gray-50'}`}
-                  type="button"
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
+            {riskOptions.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setRiskFilter(opt)}
+                type="button"
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition border ${
+                  riskFilter === opt
+                    ? 'bg-sky-500 text-white border-sky-500 shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
           </div>
 
           {(riskFilter !== 'All' || search.trim() !== '') && (
@@ -304,47 +311,47 @@ const RiskDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch">
-        <Card className="p-4 bg-emerald-50 text-emerald-700">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-              <UsersIcon size={18} />
+        <Card className="p-5 bg-emerald-50 text-emerald-700 border border-emerald-200/50 hover:border-emerald-300 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 ring-4 ring-emerald-50">
+              <UsersIcon size={20} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide">Total Patients</p>
-              <p className="text-2xl font-bold">{patients.length}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600/80">Total Patients</p>
+              <p className="text-3xl font-bold mt-0.5">{patients.length}</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4 bg-amber-50 text-amber-700">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-              <AlertTriangle size={18} />
+        <Card className="p-5 bg-amber-50 text-amber-700 border border-amber-200/50 hover:border-amber-300 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700 ring-4 ring-amber-50">
+              <AlertTriangle size={20} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide">High Risk Patients</p>
-              <p className="text-2xl font-bold">{highRiskCount}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-600/80">High Risk Patients</p>
+              <p className="text-3xl font-bold mt-0.5">{highRiskCount}</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4 bg-sky-50 text-sky-700">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
-              <Gauge size={18} />
+        <Card className="p-5 bg-sky-50 text-sky-700 border border-sky-200/50 hover:border-sky-300 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100 text-sky-700 ring-4 ring-sky-50">
+              <UsersIcon size={20} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide">Avg Predicted HbA1c</p>
-              <p className="text-2xl font-bold">{averageRiskValue ?? '—'}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-sky-600/80">Normal–Risky</p>
+              <p className="text-3xl font-bold mt-0.5">{normalModerateCount}</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4 bg-slate-50 text-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-              <RefreshCcw size={18} />
+        <Card className="p-5 bg-slate-100 text-slate-800 border border-slate-300 hover:border-slate-400 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-200 text-slate-700">
+              <RefreshCcw size={20} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide">Pending Predictions</p>
-              <p className="text-2xl font-bold">{pendingPredictions}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">Pending Predictions</p>
+              <p className="text-3xl font-bold mt-0.5">{pendingPredictions}</p>
             </div>
           </div>
         </Card>
@@ -356,7 +363,7 @@ const RiskDashboard = () => {
             <h3 className={`text-xs font-semibold uppercase tracking-[0.25em] text-slate-500`}>Risk distribution</h3>
             <span className="text-[11px] text-slate-400">Live predictions</span>
           </div>
-          <div className="h-[520px] sm:h-[560px]">
+          <div className="h-[700px]">
             <Bar data={chartData} options={{ ...chartOptions, maintainAspectRatio: false }} />
           </div>
         </Card>
@@ -372,15 +379,20 @@ const RiskDashboard = () => {
                 <li key={p.id}>
                   <Link
                     to={`/predict/${p.id}`}
-                    className="flex items-center justify-between rounded-lg border border-amber-100 bg-white/80 px-3 py-2 transition-colors duration-200 hover:bg-rose-50 shadow-sm"
+                    className="flex items-center justify-between rounded-xl border border-amber-200/60 bg-white/90 px-4 py-3 transition-all duration-200 hover:bg-rose-50 hover:border-rose-200 hover:shadow-md hover:-translate-y-0.5 shadow-sm group"
                   >
-                    <div>
-                      <p className="font-medium text-slate-800">{p.name}</p>
-                      <p className="text-xs text-slate-500">{p.gender} · {p.age} y/o</p>
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-100 to-amber-100 flex items-center justify-center text-rose-600 font-bold text-sm">
+                        {p.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800 group-hover:text-rose-700 transition-colors">{p.name}</p>
+                        <p className="text-xs text-slate-500">{p.gender} · {p.age} y/o</p>
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-rose-600">{riskResults[p.id]?.value}</p>
-                      <p className="text-xs text-slate-500">{riskResults[p.id]?.label}</p>
+                      <p className="text-lg font-bold text-rose-600">{riskResults[p.id]?.value}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">{riskResults[p.id]?.label}</p>
                     </div>
                   </Link>
                 </li>
@@ -441,7 +453,7 @@ const RiskDashboard = () => {
           return (
             <Link key={p.id} to={`/predict/${p.id}`} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2">
               <Card
-                className={`space-y-3 p-4 border border-transparent transition-all duration-200 ${bgClass} shadow-sm hover:shadow-lg hover:-translate-y-0.5 cursor-pointer`}
+                className={`space-y-3 p-4 border border-transparent transition-all duration-200 ${bgClass} shadow-sm hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02] hover:border-slate-200 cursor-pointer`}
               >
                 <div className="flex justify-between items-start gap-3">
                   <div>
@@ -451,7 +463,10 @@ const RiskDashboard = () => {
                   {risk ? (
                     <RiskBadge label={risk.label} />
                   ) : (
-                    <span className="text-xs font-medium text-gray-400">Loading...</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-2 w-2 rounded-full bg-gray-300 animate-pulse" />
+                      <span className="text-xs font-medium text-gray-400">Loading...</span>
+                    </div>
                   )}
                 </div>
 
@@ -502,7 +517,21 @@ const RiskDashboard = () => {
       )}
 
       {filtered.length === 0 && (
-        <p className="text-center text-gray-400">No matching patients found.</p>
+        <div className="flex flex-col items-center justify-center py-12 space-y-3">
+          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
+            <UsersIcon size={32} className="text-gray-400" />
+          </div>
+          <p className="text-center text-gray-600 font-medium">No matching patients found</p>
+          <p className="text-center text-sm text-gray-400">Try adjusting your filters or search term</p>
+          {(riskFilter !== 'All' || search.trim() !== '') && (
+            <button
+              onClick={clearFilters}
+              className="mt-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 text-sm font-medium transition-colors"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

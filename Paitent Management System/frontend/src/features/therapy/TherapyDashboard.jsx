@@ -525,8 +525,8 @@ const TherapyDashboard = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <MetricTile label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="indigo" />
-                <MetricTile label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="emerald" />
+                <MetricTile label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="emerald" />
+                <MetricTile label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="blue" />
                 <MetricTile label="DDS Δ" value={p.dds_trend_1_3 ?? '—'} tone="purple" />
                 <MetricTile label="Adherence" value={`${Math.round((p.med_adherence ?? 0) * 100)}%`} tone="amber" />
               </div>
@@ -615,6 +615,7 @@ const MetricTile = ({ label, value, tone }) => {
   const palette = {
     indigo: 'bg-indigo-50 border border-indigo-100 text-indigo-700',
     emerald: 'bg-emerald-50 border border-emerald-100 text-emerald-700',
+    blue: 'bg-blue-50 border border-blue-100 text-blue-700',
     purple: 'bg-purple-50 border border-purple-100 text-purple-700',
     amber: 'bg-amber-50 border border-amber-100 text-amber-700',
   };

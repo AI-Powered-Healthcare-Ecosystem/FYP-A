@@ -2,6 +2,8 @@ import os
 import mysql.connector
 from mysql.connector import Error
 import logging
+import uuid
+import requests
 
 # ---- MySQL connection helper ----
 def _get_mysql_conn():
@@ -237,6 +239,65 @@ def health():
     return {"status": "ok"}
 
 
+# --- Effectiveness helpers (mirror training script semantics where possible) ---
+def _improvement_ratio(baseline: float | None, followup: float | None, direction: str) -> float:
+    try:
+        b = float(baseline) if baseline is not None else float('nan')
+        f = float(followup) if followup is not None else float('nan')
+    except Exception:
+        return 0.0
+    if np.isnan(b) or np.isnan(f) or b == 0:
+        return 0.0
+    change = f - b
+    if direction == "down":
+        change = -change
+    ratio = change / abs(b)
+    return float(np.clip(ratio, -1.0, 1.0))
+
+
+def compute_effectiveness_from_patient(p: "PatientData") -> dict:
+    """Compute overall effectiveness similar to therapy_effectiveness_final.py
+    using available fields. Where training used FPG, map to FVG; missing metrics
+    are treated as neutral (0 contribution).
+    """
+    # Map available fields
+    HbA1c1 = getattr(p, 'hba1c1', None)
+    HbA1c3 = getattr(p, 'hba1c3', None)
+    FPG1   = getattr(p, 'fvg1', None)  # map FPG -> FVG in deployment schema
+    FPG3   = getattr(p, 'fvg3', None)
+    BMI1   = getattr(p, 'bmi1', None)
+    BMI3   = getattr(p, 'bmi3', None)
+    SBP    = getattr(p, 'sbp', None)
+    DBP    = getattr(p, 'dbp', None)
+    eGFR1  = getattr(p, 'egfr1', None)
+    eGFR3  = getattr(p, 'egfr3', None)
+    # Fallback: single egfr value if individual visits not available
+    if eGFR1 is None and hasattr(p, 'egfr'):
+        eGFR1 = getattr(p, 'egfr')
+    if eGFR3 is None and hasattr(p, 'egfr'):
+        eGFR3 = getattr(p, 'egfr')
+    UACR1  = getattr(p, 'uacr1', None)
+    UACR3  = getattr(p, 'uacr3', None)
+    DDS1   = getattr(p, 'dds1', None)
+    DDS3   = getattr(p, 'dds3', None)
+
+    comps: dict[str, float] = {}
+    comps["HbA1c"]    = _improvement_ratio(HbA1c1, HbA1c3, "down")
+    comps["FPG"]      = _improvement_ratio(FPG1,   FPG3,   "down")
+    comps["BMI"]      = _improvement_ratio(BMI1,   BMI3,   "down")
+    comps["SBP"]      = _improvement_ratio(SBP,    SBP,    "down")  # single
+    comps["DBP"]      = _improvement_ratio(DBP,    DBP,    "down")  # single
+    comps["eGFR"]     = _improvement_ratio(eGFR1,  eGFR3,  "up")
+    comps["UACR"]     = _improvement_ratio(UACR1,  UACR3,  "down")
+    comps["Distress"] = _improvement_ratio(DDS1,   DDS3,   "down")
+
+    weights = {"HbA1c":0.30,"FPG":0.20,"BMI":0.10,"SBP":0.05,"DBP":0.05,"eGFR":0.10,"UACR":0.10,"Distress":0.10}
+    raw = sum(weights[k] * comps.get(k, 0.0) for k in weights)
+    score = float(np.clip((raw + 1.0) / 2.0, 0.0, 1.0))
+    label = "Effective" if score >= 0.5 else "Not Effective"
+    return {"score": score, "label": label, "components": comps}
+
+
 def get_openai_embedding(text: str) -> list:
     try:
         openai = get_openai_client()
@@ -321,22 +382,41 @@ class PatientChatRequest(BaseModel):
     query: str
 
 class PatientData(BaseModel):
+    # Core fields (nullable for missing data)
     insulin_regimen: str
-    hba1c1: float
-    hba1c2: float
-    hba1c3: float
-    hba1c_delta_1_2: float
-    gap_initial_visit: float
-    gap_first_clinical: float
-    egfr: float
-    reduction_percent: float
-    fvg1: float
-    fvg2: float
-    fvg3: float
-    fvg_delta_1_2: float
-    dds1: float
-    dds3: float
-    dds_trend_1_3: float
+    hba1c1: float | None
+    hba1c2: float | None
+    hba1c3: float | None
+    hba1c_delta_1_2: float | None
+    gap_initial_visit: float | None
+    gap_first_clinical: float | None
+    egfr: float | None
+    reduction_percent: float | None
+    fvg1: float | None
+    fvg2: float | None
+    fvg3: float | None
+    fvg_delta_1_2: float | None
+    dds1: float | None
+    dds3: float | None
+    dds_trend_1_3: float | None
+    # Therapy model fields (nullable)
+    age: float | None
+    sex: str
+    ethnicity: str
+    height_cm: float | None
+    weight1: float | None
+    weight2: float | None
+    weight3: float | None
+    bmi1: float | None
+    bmi3: float | None
+    sbp: float | None
+    dbp: float | None
+    egfr1: float | None
+    egfr3: float | None
+    uacr1: float | None
+    uacr3: float | None
+    gap_1_2_days: float | None
+    gap_2_3_days: float | None
 
 class DashboardRequest(BaseModel):
     features: list[float]
@@ -480,13 +560,59 @@ async def treatment_recommendation(request: Request):
 
         # Serialize patient data as context
         patient_data = "\n".join([f"{k}: {v}" for k, v in patient.items()])
+        
+        # Combine question with patient context
+        full_input = f"{question}\n\nPatient Data:\n{patient_data}"
 
-        # Use RAG-style structured prompt (pass patient context)
-        response = generate_rag_response(question, patient_context=patient_data)
+        # Call Langflow API
+        langflow_url = "https://host-langflow.delightfulflower-50ef0bcd.westus2.azurecontainerapps.io/api/v1/run/6c9b582f-d64a-44de-add3-b075a051dccc"
+        
+        # Get API key from environment variable (try different formats)
+        langflow_api_key = os.getenv("LANGFLOW_API_KEY", "")
+        langflow_token = os.getenv("LANGFLOW_TOKEN", "")
+        
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        # Try different authentication methods
+        if langflow_api_key:
+            headers["x-api-key"] = langflow_api_key  # Common API key header
+        elif langflow_token:
+            headers["Authorization"] = f"Bearer {langflow_token}"
+        
+        payload = {
+            "output_type": "chat",
+            "input_type": "chat",
+            "input_value": full_input,
+            "session_id": str(uuid.uuid4())
+        }
+        
+        logging.info("="*80)
+        logging.info(f"TREATMENT RECOMMENDATION - Langflow API Call")
+        logging.info(f"Headers: {headers}")
+        logging.info(f"Payload keys: {list(payload.keys())}")
+        logging.info(f"Session ID: {payload['session_id']}")
+        logging.info("="*80)
+        
+        langflow_response = requests.post(langflow_url, json=payload, headers=headers, timeout=90)
+        
+        logging.info("="*80)
+        logging.info(f"LANGFLOW RESPONSE - Status Code: {langflow_response.status_code}")
+        logging.info(f"LANGFLOW RESPONSE - Headers: {dict(langflow_response.headers)}")
+        logging.info(f"LANGFLOW RESPONSE - Body: {langflow_response.text}")
+        logging.info("="*80)
+        
+        langflow_response.raise_for_status()
+        
+        result = langflow_response.json()
+        
+        # Extract response from Langflow output
+        response_text = result.get("outputs", [{}])[0].get("outputs", [{}])[0].get("results", {}).get("message", {}).get("text", "No response generated")
 
         return {
-            "response": response["response"],
-            "context_used": response["context_used"]
+            "response": response_text,
+            "context_used": "Langflow API with trained context"
         }
 
     except Exception as e:
@@ -494,114 +620,241 @@ async def treatment_recommendation(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/treatment-chat")
+async def treatment_chat(request: Request):
+    try:
+        body = await request.json()
+        patient = body["patient"]
+        question = body["question"]
+
+        # Match Langflow prompt format with context and question variables
+        full_input = question
+
+        # Call Langflow API (SAME URL as treatment-recommendation)
+        langflow_url = "https://host-langflow.delightfulflower-50ef0bcd.westus2.azurecontainerapps.io/api/v1/run/6c9b582f-d64a-44de-add3-b075a051dccc"
+        
+        # Get API key from environment variable
+        langflow_api_key = os.getenv("LANGFLOW_API_KEY", "")
+        langflow_token = os.getenv("LANGFLOW_TOKEN", "")
+        
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        # Try different authentication methods
+        if langflow_api_key:
+            headers["x-api-key"] = langflow_api_key
+        elif langflow_token:
+            headers["Authorization"] = f"Bearer {langflow_token}"
+        
+        payload = {
+            "output_type": "chat",
+            "input_type": "chat",
+            "input_value": full_input,
+            "session_id": str(uuid.uuid4())
+        }
+        
+        logging.info("="*80)
+        logging.info(f"TREATMENT CHAT - Langflow API Call")
+        logging.info(f"Session ID: {payload['session_id']}")
+        logging.info("="*80)
+        
+        langflow_response = requests.post(langflow_url, json=payload, headers=headers, timeout=90)
+        
+        logging.info("="*80)
+        logging.info(f"LANGFLOW RESPONSE - Status Code: {langflow_response.status_code}")
+        logging.info("="*80)
+        
+        langflow_response.raise_for_status()
+        
+        result = langflow_response.json()
+        
+        # Extract response from Langflow output
+        response_text = result.get("outputs", [{}])[0].get("outputs", [{}])[0].get("results", {}).get("message", {}).get("text", "No response generated")
+
+        return {
+            "response": response_text
+        }
+
+    except Exception as e:
+        print("❌ Treatment Chat Error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/chatbot-patient-query")
 async def chatbot_patient_query(req: PatientChatRequest):
-    patient_data = "\n".join([f"{k}: {v}" for k, v in req.patient.items()])
-    prompt = f"""
-You are a clinical health assistant.
-
-Context:
-Patient Info:
+    try:
+        patient_data = "\n".join([f"{k}: {v}" for k, v in req.patient.items()])
+        
+        # Combine user query with patient context
+        full_input = f"""Patient Context:
 {patient_data}
 
-User Question:
-{req.query}
+User Question: {req.query}
 
-Instructions:
-- Answer directly and concisely based only on the patient's context.
-- Do not show reasoning steps like "let me think" or "first".
-- Do not explain your thought process or include <think> or internal monologue.
-- Do not state patient ID, use patient name instead.
-- Make notable key information that the AI had gathered from the medical book context that it was trained on.
-- Use markdown only for bold and bullet points, like:
-  - **HbA1c:** Slight improvement...
-  - **FVG:** High variability...
-- Keep responses friendly and clear, under 180 words.
-"""
+Please provide a concise, friendly clinical response based on the patient's data and medical knowledge."""
 
-    response = generate_rag_response(prompt)
-    return {"response": response["response"]}
+        # Call Langflow API
+        langflow_url = "https://host-langflow.delightfulflower-50ef0bcd.westus2.azurecontainerapps.io/api/v1/run/a9c7468e-417c-4289-80b4-0d6bec3d846d"
+        
+        # Get API key from environment variable (try different formats)
+        langflow_api_key = os.getenv("LANGFLOW_API_KEY", "")
+        langflow_token = os.getenv("LANGFLOW_TOKEN", "")
+        
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        # Try different authentication methods
+        if langflow_api_key:
+            headers["x-api-key"] = langflow_api_key  # Common API key header
+        elif langflow_token:
+            headers["Authorization"] = f"Bearer {langflow_token}"
+        
+        payload = {
+            "output_type": "chat",
+            "input_type": "chat",
+            "input_value": full_input,
+            "session_id": str(uuid.uuid4())
+        }
+        
+        logging.info("="*80)
+        logging.info(f"CHATBOT QUERY - Langflow API Call")
+        logging.info(f"Headers: {headers}")
+        logging.info(f"Payload keys: {list(payload.keys())}")
+        logging.info(f"Session ID: {payload['session_id']}")
+        logging.info("="*80)
+        
+        langflow_response = requests.post(langflow_url, json=payload, headers=headers, timeout=30)
+        
+        logging.info("="*80)
+        logging.info(f"LANGFLOW RESPONSE - Status Code: {langflow_response.status_code}")
+        logging.info(f"LANGFLOW RESPONSE - Headers: {dict(langflow_response.headers)}")
+        logging.info(f"LANGFLOW RESPONSE - Body: {langflow_response.text}")
+        logging.info("="*80)
+        
+        langflow_response.raise_for_status()
+        
+        result = langflow_response.json()
+        
+        # Extract response from Langflow output
+        response_text = result.get("outputs", [{}])[0].get("outputs", [{}])[0].get("results", {}).get("message", {}).get("text", "No response generated")
+        
+        return {"response": response_text}
+        
+    except Exception as e:
+        print("❌ Chatbot Query Error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _forecast_hba1c_simple(hba1c_values: list[float], steps: int = 2) -> list[float]:
+    """Lightweight linear forecast for HbA1c (mirrors script's fallback for <3 visits)"""
+    valid = [v for v in hba1c_values if not np.isnan(v)]
+    if len(valid) < 2:
+        return [np.nan] * steps
+    x = np.arange(len(valid), dtype=float)
+    a, b = np.polyfit(x, valid, 1)
+    future_x = np.arange(len(valid), len(valid) + steps, dtype=float)
+    return [float(a * fx + b) for fx in future_x]
 
 
 @app.post("/predict-therapy-pathline")
 def predict_therapy_pathline(data: PatientData):
     try:
+        # Build complete DataFrame with all training columns
         patient_dict = {
-            'INSULIN REGIMEN': [data.insulin_regimen],
+            'Age': [data.age if data.age is not None else np.nan],
+            'Sex': [data.sex if data.sex else 'Unknown'],
+            'Ethnicity': [data.ethnicity if data.ethnicity else 'Unknown'],
+            'Height_cm': [data.height_cm if data.height_cm is not None else np.nan],
+            'Weight1': [data.weight1 if data.weight1 is not None else np.nan],
+            'Weight2': [data.weight2 if data.weight2 is not None else np.nan],
+            'Weight3': [data.weight3 if data.weight3 is not None else np.nan],
+            'BMI1': [data.bmi1 if data.bmi1 is not None else np.nan],
+            'BMI3': [data.bmi3 if data.bmi3 is not None else np.nan],
+            'Regimen1': [data.insulin_regimen],
+            'Regimen2': [data.insulin_regimen],
+            'Regimen3': [data.insulin_regimen],
             'HbA1c1': [data.hba1c1],
             'HbA1c2': [data.hba1c2],
             'HbA1c3': [data.hba1c3],
-            'HbA1c_Delta_1_2': [data.hba1c_delta_1_2],
-            'Gap from initial visit (days)': [data.gap_initial_visit],
-            'Gap from first clinical visit (days)': [data.gap_first_clinical],
-            'eGFR': [data.egfr],
-            'Reduction (%)': [data.reduction_percent],
-            'FVG1': [data.fvg1],
-            'FVG2': [data.fvg2],
-            'FVG3': [data.fvg3],
-            'FVG_Delta_1_2': [data.fvg_delta_1_2],
+            'FPG1': [data.fvg1],
+            'FPG2': [data.fvg2],
+            'FPG3': [data.fvg3],
+            'SBP': [data.sbp if data.sbp is not None else np.nan],
+            'DBP': [data.dbp if data.dbp is not None else np.nan],
+            'eGFR1': [data.egfr1 if data.egfr1 is not None else data.egfr],
+            'eGFR3': [data.egfr3 if data.egfr3 is not None else data.egfr],
+            'UACR1': [data.uacr1 if data.uacr1 is not None else np.nan],
+            'UACR3': [data.uacr3 if data.uacr3 is not None else np.nan],
             'DDS1': [data.dds1],
             'DDS3': [data.dds3],
-            'DDS_Trend_1_3': [data.dds_trend_1_3],
+            'Gap_1_2_days': [data.gap_1_2_days if data.gap_1_2_days is not None else np.nan],
+            'Gap_2_3_days': [data.gap_2_3_days if data.gap_2_3_days is not None else np.nan],
         }
 
         df = pd.DataFrame(patient_dict)
-        visits = [data.hba1c1, data.hba1c2, data.hba1c3]
-        probabilities = []
-
         tm = get_therapy_model()
-        for val in visits:
-            df['HbA1c1'] = [val]
-            prob = tm.predict_proba(df)[0][1]
-            probabilities.append(round(prob, 3))
+        
+        # Model probability (single row, matches script)
+        model_probability = float(tm.predict_proba(df)[0][1])
 
-        prob_text = "\n".join([f"Visit {i+1}: {p * 100:.1f}%" for i, p in enumerate(probabilities)])
-        prompt = (
-            f"The patient is undergoing the insulin regimen: {data.insulin_regimen}.\n"
-    "The predicted therapy effectiveness probabilities over three visits are:\n{prob_text}\n\n"
+        # Effectiveness (matches script compute_effectiveness)
+        eff = compute_effectiveness_from_patient(data)
 
-    "Format output in strict markdown with the following sections:\n\n"
+        # Forecast HbA1c (matches script forecast_metric)
+        hba1c_series = [data.hba1c1, data.hba1c2, data.hba1c3]
+        forecast_vals = _forecast_hba1c_simple(hba1c_series, steps=2)
 
-    "### 📋 Insights\n"
-    "- **HbA1c**: one short statement.\n\n"
-    "- **FVG**: one short statement.\n\n"
-    "- **DDS**: one short statement.\n\n"
+        # LLM summary (matches script llm_analysis prompt structure)
+        hb = [data.hba1c1, data.hba1c2, data.hba1c3]
+        regimen = data.insulin_regimen
+        pred_text = f"""Therapy effectiveness score: {eff['score']:.2f} ({eff['label']}).
+HbA1c across visits: {', '.join(f"{x:.2f}" for x in hb if not np.isnan(x))}.
+Forecast HbA1c next visits: {', '.join(f"{x:.2f}" for x in forecast_vals if not np.isnan(x))}.
+Regimen: {regimen}."""
 
-    "### 📝 Justification\n"
-    "- 2–3 short but concise sentences explaining how HbA1c, FVG, and DDS trends justify the probabilities. Make sure these 3 are in bold to highlight separation\n\n"
+        # Fallback if no GROQ_API_KEY
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            trend = "improving" if eff["components"]["HbA1c"] > 0 else ("worsening" if eff["components"]["HbA1c"] < 0 else "flat")
+            recs = []
+            if eff["score"] < 0.5:
+                recs.append("consider regimen intensification or adherence review")
+            else:
+                recs.append("continue current regimen with monitoring")
+            if data.sbp >= 140 or data.dbp >= 90:
+                recs.append("optimize blood pressure control")
+            if data.uacr3 >= 30:
+                recs.append("monitor albuminuria and kidney function")
+            summary = f"Glycemic trend is {trend}. Overall therapy appears {eff['label'].lower()} (score {eff['score']:.2f}). Recommendation: " + "; ".join(recs) + "."
+        else:
+            try:
+                prompt = f"""You are a helpful medical assistant.
+Summarize the patient's trajectory and give a concise, clinically-relevant recommendation (<120 words).
 
-    "Rules:\n"
-    "- Always use `-` at the start of bullets.\n"
-    "- Do not mix multiple points in one line.\n"
-    "- Make sure for insights, it enters a new line after each bullet.\n"
-    "- Keep all sections under 360 words total.\n"
-    "- Use only markdown (no HTML).\n"
+{pred_text}"""
+                groq_client = get_groq_client()
+                chat = groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful medical AI assistant."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.2,
+                    max_tokens=220,
+                )
+                summary = chat.choices[0].message.content.strip()
+            except Exception as e:
+                summary = f"(LLM unavailable) {str(e)}"
 
-    f"HbA1c scores: {data.hba1c1}, {data.hba1c2}, {data.hba1c3}\n"
-    f"FVG scores: {data.fvg1}, {data.fvg2}, {data.fvg3}\n"
-    f"DDS scores: {data.dds1}, {data.dds3}\n"
-        )
-
-        llm = get_groq_client().chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": "You are a helpful medical AI assistant."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        full_reply = llm.choices[0].message.content
-        insight = full_reply.split("</think>")[-1].strip() if "</think>" in full_reply else full_reply.strip()
-
-        feature_names = tm.named_steps['preprocessor'].get_feature_names_out()
-        importances = tm.named_steps['classifier'].feature_importances_
-        sorted_features = sorted(zip(feature_names, importances), key=lambda x: x[1], reverse=True)
-        top_factors = [{"feature": name, "importance": round(score, 4)} for name, score in sorted_features[:5]]
-
+        # Match script output structure
         return {
-            "probabilities": probabilities,
-            "insight": insight,
-            "top_factors": top_factors
+            "patient_id": None,  # not passed in request, can add if needed
+            "effectiveness": eff,
+            "model_probability": round(model_probability, 4),
+            "forecast_hba1c": [round(f, 2) if not np.isnan(f) else None for f in forecast_vals],
+            "summary": summary,
         }
 
     except Exception as e:
