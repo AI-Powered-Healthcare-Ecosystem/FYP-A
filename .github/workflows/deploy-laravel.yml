@@ -7,11 +7,10 @@ on:
     paths:
       - 'Paitent Management System/backend/**'
       - 'Paitent Management System/frontend/**'
-      - '!Paitent Management System/backend/fastapi/**'  # Exclude FastAPI directory
-      - '.github/workflows/deploy-laravel.yml'  # Include workflow file itself
+      - '!Paitent Management System/backend/fastapi/**'  # Exclude FastAPI (deploys separately)
   workflow_dispatch:  # Keep manual trigger option
 
-
+  
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -81,10 +80,14 @@ jobs:
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
           echo "DB_SSL_CA=/home/site/wwwroot/storage/certs/DigiCertGlobalRootCA.crt.pem" >> .env
           echo "APP_KEY=${{ secrets.APP_KEY }}" >> .env
-          echo "SESSION_DRIVER=cookie" >> .env
+          echo "SESSION_DRIVER=database" >> .env
           echo "SESSION_LIFETIME=120" >> .env
           echo "SESSION_SECURE_COOKIE=true" >> .env
-          echo "SESSION_SAME_SITE=none" >> .env  
+          echo "SESSION_SAME_SITE=none" >> .env
+          echo "SESSION_DOMAIN=null" >> .env
+          echo "SANCTUM_STATEFUL_DOMAINS=104384876laravel-cwh4axg4d4h5f0ha.southeastasia-01.azurewebsites.net" >> .env
+          echo "FRONTEND_ORIGIN=https://104384876laravel-cwh4axg4d4h5f0ha.southeastasia-01.azurewebsites.net" >> .env
+          echo "LANGFLOW_API_KEY=${{ secrets.LANGFLOW_API_KEY }}" >> .env  
 
       - name: Configure document root
         run: |

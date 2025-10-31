@@ -762,10 +762,29 @@ def _forecast_hba1c_simple(hba1c_values: list[float], steps: int = 2) -> list[fl
 def predict_therapy_pathline(data: PatientData):
     try:
         # Build complete DataFrame with all training columns
+        # Map categorical values to match training data
+        # Handle both uppercase database values and model-expected values
+        sex_map = {
+            'MALE': 'Male', 'FEMALE': 'Female', 'M': 'Male', 'F': 'Female',
+            'Male': 'Male', 'Female': 'Female',
+            '0': 'Male', '1': 'Female'
+        }
+        ethnicity_map = {
+            # Map database ethnicities to model's expected categories
+            'CAUCASIAN': 'Others', 'AFRICAN': 'Others', 'HISPANIC': 'Others', 'ASIAN': 'Chinese',
+            'Caucasian': 'Others', 'African': 'Others', 'Hispanic': 'Others', 'Asian': 'Chinese',
+            # Model's original categories
+            'Chinese': 'Chinese', 'Malay': 'Malay', 'Indian': 'Indian', 'Others': 'Others',
+            '0': 'Chinese', '1': 'Malay', '2': 'Indian', '3': 'Others'
+        }
+        
+        sex_value = sex_map.get(str(data.sex).upper() if data.sex else '', 'Male')
+        ethnicity_value = ethnicity_map.get(str(data.ethnicity).upper() if data.ethnicity else '', 'Chinese')
+        
         patient_dict = {
             'Age': [data.age if data.age is not None else np.nan],
-            'Sex': [data.sex if data.sex else 'Unknown'],
-            'Ethnicity': [data.ethnicity if data.ethnicity else 'Unknown'],
+            'Sex': [sex_value],
+            'Ethnicity': [ethnicity_value],
             'Height_cm': [data.height_cm if data.height_cm is not None else np.nan],
             'Weight1': [data.weight1 if data.weight1 is not None else np.nan],
             'Weight2': [data.weight2 if data.weight2 is not None else np.nan],
