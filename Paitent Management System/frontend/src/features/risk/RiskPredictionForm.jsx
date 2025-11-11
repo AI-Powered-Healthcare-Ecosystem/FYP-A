@@ -186,6 +186,14 @@ function RiskPredictionForm() {
       list.push(`FVG increase between visits (+${patientData.fvg_delta_1_2})`);
     }
 
+    // Add monitoring frequency insight
+    const freqSmbg = patientData.freq_smbg || 228;
+    if (freqSmbg < 175) {
+      list.push(`Low monitoring frequency (${freqSmbg} checks/month)`);
+    } else if (freqSmbg > 345) {
+      list.push(`High monitoring frequency (${freqSmbg} checks/month)`);
+    }
+
     return list.slice(0, 6);
   }, [patientData]);
 
@@ -335,10 +343,10 @@ function RiskPredictionForm() {
               <LineChart size={14} /> Glycemic metrics snapshot
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-              <MetricBox label="HbA1c (1st)" value={patientData?.hba1c_1st_visit} />
-              <MetricBox label="HbA1c (2nd)" value={patientData?.hba1c_2nd_visit} />
-              <MetricBox label="FVG (1st)" value={patientData?.fvg_1} />
-              <MetricBox label="FVG (2nd)" value={patientData?.fvg_2} />
+              <MetricBox label="HbA1c (1st)" value={patientData?.hba1c_1st_visit} tone="emerald" />
+              <MetricBox label="HbA1c (2nd)" value={patientData?.hba1c_2nd_visit} tone="emerald" />
+              <MetricBox label="FVG (1st)" value={patientData?.fvg_1} tone="cyan" />
+              <MetricBox label="FVG (2nd)" value={patientData?.fvg_2} tone="cyan" />
             </div>
           </div>
 
@@ -369,13 +377,41 @@ function RiskPredictionForm() {
 
       <Card className="rounded-2xl bg-white shadow-md ring-1 ring-black/5 px-6 py-6">
         <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-          <ActivityIcon size={14} /> Therapy response metrics
+          <ActivityIcon size={14} /> Model Input Features
         </h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-          <MetricBox label="HbA1c Δ" value={patientData?.reduction_a?.toFixed(1)} />
-          <MetricBox label="Daily HbA1c drop" value={patientData?.reduction_a_per_day?.toFixed(3)} />
-          <MetricBox label="FVG Δ" value={patientData?.fvg_delta_1_2} />
-          <MetricBox label="Avg FVG" value={patientData?.avg_fvg_1_2} />
+        <p className="text-xs text-slate-500 mb-4">These are the exact features used by the Lasso risk prediction model (in order)</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+          <MetricBox 
+            label="1. HbA1c (2nd)" 
+            value={patientData?.hba1c_2nd_visit ? Number(patientData.hba1c_2nd_visit).toFixed(2) : '—'} 
+            tone="emerald" 
+          />
+          <MetricBox 
+            label="2. FVG (2nd)" 
+            value={patientData?.fvg_2 || '—'} 
+            tone="cyan" 
+          />
+          <MetricBox 
+            label="3. Freq SMBG" 
+            value={patientData?.freq_smbg ? `${patientData.freq_smbg}` : '228'} 
+            subtitle={patientData?.freq_smbg ? `~${(patientData.freq_smbg / 30).toFixed(1)}/day` : '~7.6/day'}
+            tone="purple"
+          />
+          <MetricBox 
+            label="4. Avg FVG (1-2)" 
+            value={patientData?.avg_fvg_1_2 ? Number(patientData.avg_fvg_1_2).toFixed(2) : '—'} 
+            tone="cyan" 
+          />
+          <MetricBox 
+            label="5. Reduction (%)" 
+            value={patientData?.reduction_a ? Number(patientData.reduction_a).toFixed(2) : '—'} 
+            tone="amber" 
+          />
+          <MetricBox 
+            label="6. HbA1c (1st)" 
+            value={patientData?.hba1c_1st_visit ? Number(patientData.hba1c_1st_visit).toFixed(2) : '—'} 
+            tone="emerald" 
+          />
         </div>
       </Card>
 

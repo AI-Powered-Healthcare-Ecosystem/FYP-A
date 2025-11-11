@@ -627,8 +627,29 @@ async def treatment_chat(request: Request):
         patient = body["patient"]
         question = body["question"]
 
-        # Match Langflow prompt format with context and question variables
-        full_input = question
+        # Build patient context
+        patient_context = f"""Patient Information:
+        - Name: {patient.get('name', 'N/A')}
+        - Age: {patient.get('age', 'N/A')} years
+        - Gender: {patient.get('gender', 'N/A')}
+        - HbA1c (1st visit): {patient.get('hba1c_1st_visit', 'N/A')}%
+        - HbA1c (2nd visit): {patient.get('hba1c_2nd_visit', 'N/A')}%
+        - HbA1c (3rd visit): {patient.get('hba1c_3rd_visit', 'N/A')}%
+        - FVG (1st): {patient.get('fvg_1', 'N/A')} mmol/L
+        - FVG (2nd): {patient.get('fvg_2', 'N/A')} mmol/L
+        - Insulin Regimen: {patient.get('insulin_regimen_type', 'N/A')}
+        - DDS (1st): {patient.get('dds_1', 'N/A')}
+        - DDS (3rd): {patient.get('dds_3', 'N/A')}
+        - Freq SMBG: {patient.get('freq_smbg', 'N/A')} checks/month
+        - Medical History: {patient.get('medical_history', 'N/A')}
+        - Current Medications: {patient.get('medications', 'N/A')}
+        """
+
+        # Combine patient context with user question
+        full_input = f"""{patient_context}
+
+        User Question: {question} 
+        """
 
         # Call Langflow API (SAME URL as treatment-recommendation)
         langflow_url = "https://host-langflow.delightfulflower-50ef0bcd.westus2.azurecontainerapps.io/api/v1/run/6c9b582f-d64a-44de-add3-b075a051dccc"

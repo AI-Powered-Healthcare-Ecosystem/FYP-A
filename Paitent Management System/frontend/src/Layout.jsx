@@ -285,8 +285,27 @@ function NotificationBell() {
 
   useEffect(() => {
     fetchCount();
-    const t = setInterval(fetchCount, 10000);
-    return () => clearInterval(t);
+    
+    // Only poll when tab is visible to reduce server load
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchCount(); // Fetch immediately when tab becomes visible
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Poll every 30 seconds (reduced from 10s to save costs)
+    const t = setInterval(() => {
+      if (!document.hidden) {
+        fetchCount();
+      }
+    }, 30000);
+    
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {

@@ -133,7 +133,32 @@ Instructions:
   const egfr = patient.egfr ?? '-';
 
   const parseMarkdownBold = (text) => {
-    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    if (!text) return '';
+    
+    // Convert markdown to HTML
+    let html = text
+      // Headers
+      .replace(/^### (.*$)/gim, '<h3 class="text-base font-semibold text-slate-800 mt-3 mb-2">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-lg font-bold text-slate-900 mt-4 mb-2">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold text-slate-900 mt-4 mb-3">$1</h1>')
+      // Bold
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-slate-800">$1</strong>')
+      // Italic
+      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      // Bullet points
+      .replace(/^\s*[-*]\s+(.+)$/gim, '<li class="ml-4">$1</li>')
+      // Numbered lists
+      .replace(/^\s*\d+\.\s+(.+)$/gim, '<li class="ml-4">$1</li>')
+      // Line breaks
+      .replace(/\n\n/g, '<br/><br/>')
+      .replace(/\n/g, '<br/>');
+    
+    // Wrap consecutive <li> tags in <ul>
+    html = html.replace(/(<li class="ml-4">.*?<\/li>)(?:\s*<br\/>)*(<li class="ml-4">)/g, '$1$2');
+    html = html.replace(/(<li class="ml-4">.*?<\/li>)/g, '<ul class="list-disc space-y-1 my-2">$1</ul>');
+    html = html.replace(/<\/ul>\s*<ul class="list-disc space-y-1 my-2">/g, '');
+    
+    return html;
   };
 
   const hba1cForecastChart = {
@@ -202,7 +227,7 @@ Instructions:
         <InfoTile icon={<BarChart3 size={16} />} label="Insulin regimen" value={patient.insulin_regimen_type || 'Not specified'} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_500px]">
         <div className="grid gap-4 sm:grid-cols-2">
           <SummaryTile tone="emerald" icon={<Droplet size={18} />} label="HbA1c Δ" value={`↓ ${(patient.reduction_a ?? 0).toFixed(1)}%`} />
           <SummaryTile tone="cyan" icon={<Activity size={18} />} label="FVG Δ (1→2)" value={`${Number(fvgDrop ?? 0).toFixed(1)}`} />
@@ -210,7 +235,7 @@ Instructions:
           <SummaryTile tone="sky" icon={<ShieldCheck size={18} />} label="eGFR" value={`${egfr} mL/min`} />
         </div>
         
-        <Card className="rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50 shadow-md ring-1 ring-indigo-100/70 flex flex-col h-[400px]">
+        <Card className="rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50 shadow-md ring-1 ring-indigo-100/70 flex flex-col h-[600px]">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-indigo-100">
             <MessageCircle size={18} className="text-indigo-500" />
             <h3 className="text-sm font-semibold text-slate-800">Medical Assistant</h3>
@@ -234,7 +259,14 @@ Instructions:
                       ? 'bg-indigo-500 text-white' 
                       : 'bg-white border border-indigo-100 text-slate-700'
                   }`}>
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    {msg.role === 'user' ? (
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    ) : (
+                      <div 
+                        className="text-sm prose prose-sm max-w-none" 
+                        dangerouslySetInnerHTML={{ __html: parseMarkdownBold(msg.content) }}
+                      />
+                    )}
                   </div>
                 </div>
               ))

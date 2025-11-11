@@ -281,6 +281,13 @@ const PatientProfile = () => {
             <InfoItem icon="💉" label="Insulin regimen" value={patient.insulin_regimen_type || 'N/A'} />
             <InfoItem icon="❤️" label="Activity" value={patient.physical_activity || 'N/A'} />
           </div>
+          <div className="grid sm:grid-cols-1 gap-3">
+            <InfoItem 
+              icon="🩸" 
+              label="Blood glucose monitoring" 
+              value={patient.freq_smbg ? `${patient.freq_smbg} checks/month (~${(patient.freq_smbg / 30).toFixed(1)}/day)` : 'N/A'} 
+            />
+          </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <InfoItem icon="📧" label="Email" value={patient.email || 'N/A'} />
             <InfoItem icon="📞" label="Phone" value={patient.phone || 'N/A'} />

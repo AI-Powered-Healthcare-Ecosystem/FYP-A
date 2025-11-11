@@ -417,6 +417,7 @@ const PatientsList = ({ hideHeader = false }) => {
               <th className="px-4 py-2.5">HbA1c Δ</th>
               <th className="px-4 py-2.5">Drop/Day</th>
               <th className="px-4 py-2.5">DDS Δ</th>
+              <th className="px-4 py-2.5">BG Mon.</th>
               <th className="px-4 py-2.5">Gap (1st→3rd)</th>
               <th className="px-4 py-2.5">Gap (2nd→3rd)</th>
               <th className="px-4 py-2.5">
@@ -428,7 +429,7 @@ const PatientsList = ({ hideHeader = false }) => {
             <tbody>
               {filteredPatients.length === 0 ? (
                 <tr>
-                  <td colSpan="16" className="text-center py-6 text-gray-500">
+                  <td colSpan="17" className="text-center py-6 text-gray-500">
                     No matching patients found.
                   </td>
                 </tr>
@@ -452,14 +453,17 @@ const PatientsList = ({ hideHeader = false }) => {
                       </span>
                     </td>
                     <td className="px-4 py-2.5">{p.fvg ?? '-'}</td>
-                    <td className="px-4 py-2.5">{p.hba1c_1st_visit ?? '-'}</td>
-                    <td className="px-4 py-2.5">{p.hba1c_2nd_visit ?? '-'}</td>
-                    <td className="px-4 py-2.5">{p.hba1c_3rd_visit ?? '-'}</td>
+                    <td className="px-4 py-2.5">{p.hba1c_1st_visit ? Number(p.hba1c_1st_visit).toFixed(2) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.hba1c_2nd_visit ? Number(p.hba1c_2nd_visit).toFixed(2) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.hba1c_3rd_visit ? Number(p.hba1c_3rd_visit).toFixed(2) : '-'}</td>
                     <td className="px-4 py-2.5">{p.avg_fvg_1_2 ?? '-'}</td>
                     <td className="px-4 py-2.5">{formatTrend(p.fvg_delta_1_2)}</td>
                     <td className="px-4 py-2.5">{formatTrend(p.reduction_a)}</td>
                     <td className="px-4 py-2.5">{formatTrend(p.reduction_a_per_day)}</td>
                     <td className="px-4 py-2.5">{formatTrend(p.dds_trend_1_3)}</td>
+                    <td className="px-4 py-2.5" title={p.freq_smbg ? `${p.freq_smbg} checks/month (~${(p.freq_smbg / 30).toFixed(1)}/day)` : 'Not recorded'}>
+                      {p.freq_smbg ? `${p.freq_smbg}` : '-'}
+                    </td>
                     <td className="px-4 py-2.5">{formatGap(p.gap_from_initial_visit)}</td>
                     <td className="px-4 py-2.5">{formatGap(p.gap_from_first_clinical_visit)}</td>
                     <td className="px-4 py-2.5">
