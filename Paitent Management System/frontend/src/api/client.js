@@ -34,20 +34,13 @@ export const fastApiClient = axios.create({
   );
 });
 
-// Auto-refresh CSRF cookie and retry once on 419/401 for Laravel client
+// Handle 419/401 errors - just reject without Sanctum retry
 laravelClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const status = error?.response?.status;
-    const config = error?.config || {};
-    if ((status === 419 || status === 401) && !config.__retried) {
-      try {
-        await axios.get(`${laravelBaseURL}/sanctum/csrf-cookie`, { withCredentials: true });
-        config.__retried = true;
-        return laravelClient.request(config);
-      } catch (e) {
-        // fall through
-      }
+    if (status === 419 || status === 401) {
+      console.warn('Session expired or unauthorized. Please log in again.');
     }
     return Promise.reject(error);
   }

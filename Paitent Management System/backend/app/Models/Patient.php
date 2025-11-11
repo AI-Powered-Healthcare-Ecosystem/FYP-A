@@ -19,6 +19,7 @@ class Patient extends Model
     'egfr', 'egfr1', 'egfr3',
     'uacr1', 'uacr3',
     'dds_1', 'dds_3', 'physical_activity',
+    'freq_smbg',
     // Derived fields
     'avg_fvg_1_2', 'fvg_delta_1_2',
     'reduction_a', 'reduction_a_per_day',

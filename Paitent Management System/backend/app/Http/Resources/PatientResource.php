@@ -48,6 +48,7 @@ class PatientResource extends JsonResource
             'uacr3' => $this->uacr3,
             'dds_1' => $this->dds_1,
             'dds_3' => $this->dds_3,
+            'freq_smbg' => $this->freq_smbg,
             'first_visit_date' => $this->first_visit_date,
             'second_visit_date' => $this->second_visit_date,
             'third_visit_date' => $this->third_visit_date,

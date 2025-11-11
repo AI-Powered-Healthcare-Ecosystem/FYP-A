@@ -28,12 +28,12 @@ function RiskPredictionForm() {
         setPatientData(data);
 
         const features = [
-          parseFloat(data.hba1c_1st_visit),
-          parseFloat(data.hba1c_2nd_visit),
-          parseFloat(data.fvg_1),
-          parseFloat(data.fvg_2),
-          parseFloat(data.avg_fvg_1_2),
-          parseFloat(data.reduction_a)
+          parseFloat(data.hba1c_2nd_visit),  // HbA1c2 - Position 0
+          parseFloat(data.fvg_2),            // FVG2 - Position 1
+          parseFloat(data.freq_smbg || 228), // Freq SMBG - Position 2 (default to median if missing)
+          parseFloat(data.avg_fvg_1_2),      // Avg_FVG_1_2 - Position 3
+          parseFloat(data.reduction_a),      // Reduction - Position 4
+          parseFloat(data.hba1c_1st_visit)   // HbA1c1 - Position 5
         ];
 
         if (features.some(val => isNaN(val))) {

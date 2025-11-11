@@ -171,7 +171,7 @@ def get_ridge_model():
     if _ridge_model is None:
         import joblib, os
         base_dir = os.path.dirname(__file__)
-        model_path = os.path.join(base_dir, "ridge_best_model_1.pkl")
+        model_path = os.path.join(base_dir, "lasso_model.pkl")  # Switched to Lasso model
         _ridge_model = joblib.load(model_path)
     return _ridge_model
 

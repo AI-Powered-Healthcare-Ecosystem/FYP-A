@@ -8,6 +8,7 @@ on:
       - 'Paitent Management System/backend/**'
       - 'Paitent Management System/frontend/**'
       - '!Paitent Management System/backend/fastapi/**'  # Exclude FastAPI (deploys separately)
+      - '.github/workflows/deploy-laravel.yml'  # Include workflow file itself
   workflow_dispatch:  # Keep manual trigger option
 
   

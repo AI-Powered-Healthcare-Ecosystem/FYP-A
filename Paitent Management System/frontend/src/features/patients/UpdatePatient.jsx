@@ -51,6 +51,7 @@ const UpdatePatient = () => {
           uacr3: data?.uacr3 || '',
           dds_1: data?.dds_1 || '',
           dds_3: data?.dds_3 || '',
+          freq_smbg: data?.freq_smbg || '',
           first_visit_date: data?.first_visit_date || '',
           second_visit_date: data?.second_visit_date || '',
           third_visit_date: data?.third_visit_date || '',
@@ -91,6 +92,7 @@ const UpdatePatient = () => {
       uacr3: parseFloat(formData.uacr3) || null,
       dds_1: parseFloat(formData.dds_1) || null,
       dds_3: parseFloat(formData.dds_3) || null,
+      freq_smbg: parseInt(formData.freq_smbg) || null,
       height_cm: parseFloat(formData.height_cm) || null,
       weight_kg: parseFloat(formData.weight_kg) || null,
       weight1: parseFloat(formData.weight1) || null,
@@ -215,6 +217,20 @@ const UpdatePatient = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <Input name="dds_1" label="DDS (1st reading)" type="number" step="0.01" value={formData.dds_1} onChange={handleChange} placeholder="Score" />
               <Input name="dds_3" label="DDS (3rd reading)" type="number" step="0.01" value={formData.dds_3} onChange={handleChange} placeholder="Score" />
+            </div>
+          </Fieldset>
+
+          <Fieldset title="Self-monitoring">
+            <div className="grid md:grid-cols-1 gap-4">
+              <Input 
+                name="freq_smbg" 
+                label="Frequency of Blood Glucose Monitoring" 
+                type="number" 
+                value={formData.freq_smbg} 
+                onChange={handleChange} 
+                placeholder="checks per month (e.g., 228)" 
+                helperText="How many times per month does the patient check their blood sugar? Typical range: 38-749"
+              />
             </div>
           </Fieldset>
 

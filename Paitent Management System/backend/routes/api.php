@@ -13,6 +13,15 @@ use App\Http\Controllers\AppointmentController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('web')->post('/login', [AuthController::class, 'login']);
+
+// Debug endpoint to check auth status
+Route::middleware('web')->get('/auth/check', function () {
+    return response()->json([
+        'authenticated' => auth()->check(),
+        'user' => auth()->user(),
+        'session_id' => session()->getId(),
+    ]);
+});
 Route::post('/patients', [PatientController::class, 'store']);
 Route::post('/chatbot/message', [ChatbotController::class, 'message']);
 Route::put('/patients/{id}', [PatientController::class, 'update']);
