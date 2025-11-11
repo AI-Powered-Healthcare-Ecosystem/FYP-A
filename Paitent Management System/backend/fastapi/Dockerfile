@@ -25,8 +25,7 @@ ENV HF_HOME=/app/.cache/huggingface
 # Copy app
 COPY . /app
 
-# Expose expected port (Azure uses PORT env var)
+# Expose expected port
 ENV PORT=8000
 # Run single worker to reduce memory pressure
-# Use shell form to allow PORT env var substitution
-CMD uvicorn backend.fastapi.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
+CMD ["python", "-m", "uvicorn", "backend.fastapi.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
