@@ -32,12 +32,26 @@ class UpdatePatientRequest extends FormRequest
             'hba1c2' => 'nullable|numeric',
             'hba1c3' => 'nullable|numeric',
             'egfr' => 'nullable|numeric',
+            'egfr1' => 'nullable|numeric',
+            'egfr3' => 'nullable|numeric',
             'dds_1' => 'nullable|numeric',
             'dds_3' => 'nullable|numeric',
             'first_visit_date' => 'nullable|date',
             'second_visit_date' => 'nullable|date',
             'third_visit_date' => 'nullable|date',
             'user_id' => 'nullable|integer',
+            // Therapy effectiveness fields
+            'ethnicity' => 'nullable|string',
+            'weight1' => 'nullable|numeric|min:10|max:400',
+            'weight2' => 'nullable|numeric|min:10|max:400',
+            'weight3' => 'nullable|numeric|min:10|max:400',
+            'bmi1' => 'nullable|numeric|min:10|max:100',
+            'bmi3' => 'nullable|numeric|min:10|max:100',
+            'sbp' => 'nullable|numeric|min:50|max:300',
+            'dbp' => 'nullable|numeric|min:30|max:200',
+            'uacr1' => 'nullable|numeric|min:0',
+            'uacr3' => 'nullable|numeric|min:0',
+            'freq_smbg' => 'nullable|integer|min:0|max:10',
         ];
     }
 }
