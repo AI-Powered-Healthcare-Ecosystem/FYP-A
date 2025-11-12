@@ -81,18 +81,65 @@ const TherapyDashboard = () => {
   }, [statusFilter, insulinFilter, genderFilter, ageBandFilter, search, pageSize]);
 
   const getPatientStatus = (p) => {
-    const hbDrop = p.reduction_a_2_3 ?? null;
-    const fvgDelta = p.fvg_delta_1_2 ?? null;
-    const ddsTrend = p.dds_trend_1_3 ?? null;
+    let improvingCount = 0;
+    let worseningCount = 0;
+    let totalMetrics = 0;
 
-    if (hbDrop !== null) {
-      if (hbDrop > 1.0) return 'Improving';
-      if (hbDrop < 0) return 'Worsening';
+    // HbA1c (most important - 30% weight)
+    if (p.hba1c_1st_visit && p.hba1c_3rd_visit) {
+      const hba1cChange = p.hba1c_1st_visit - p.hba1c_3rd_visit; // Positive = improvement
+      if (hba1cChange > 0.5) improvingCount += 3; // Weight x3 for importance
+      else if (hba1cChange < -0.3) worseningCount += 3;
+      totalMetrics += 3;
     }
-    if (fvgDelta !== null) {
-      if (fvgDelta < -1.0) return 'Improving';
-      if (fvgDelta > 1.0) return 'Worsening';
+
+    // FVG (20% weight)
+    if (p.fvg_1 && p.fvg_3) {
+      const fvgChange = p.fvg_1 - p.fvg_3; // Positive = improvement
+      if (fvgChange > 1.0) improvingCount += 2;
+      else if (fvgChange < -1.0) worseningCount += 2;
+      totalMetrics += 2;
     }
+
+    // BMI (10% weight)
+    if (p.bmi1 && p.bmi3) {
+      const bmiChange = p.bmi1 - p.bmi3; // Positive = improvement
+      if (bmiChange > 1.0) improvingCount += 1;
+      else if (bmiChange < -1.0) worseningCount += 1;
+      totalMetrics += 1;
+    }
+
+    // Kidney function - eGFR (10% weight)
+    if (p.egfr1 && p.egfr3) {
+      const egfrChange = p.egfr3 - p.egfr1; // Positive = improvement (higher is better)
+      if (egfrChange > 5) improvingCount += 1;
+      else if (egfrChange < -5) worseningCount += 1;
+      totalMetrics += 1;
+    }
+
+    // Kidney function - UACR (10% weight)
+    if (p.uacr1 && p.uacr3) {
+      const uacrChange = p.uacr1 - p.uacr3; // Positive = improvement (lower is better)
+      if (uacrChange > 10) improvingCount += 1;
+      else if (uacrChange < -10) worseningCount += 1;
+      totalMetrics += 1;
+    }
+
+    // Diabetes distress (10% weight)
+    if (p.dds_1 && p.dds_3) {
+      const ddsChange = p.dds_1 - p.dds_3; // Positive = improvement
+      if (ddsChange > 0.5) improvingCount += 1;
+      else if (ddsChange < -0.5) worseningCount += 1;
+      totalMetrics += 1;
+    }
+
+    if (totalMetrics === 0) return 'Stable';
+
+    const improvingRatio = improvingCount / totalMetrics;
+    const worseningRatio = worseningCount / totalMetrics;
+
+    if (improvingRatio > 0.4) return 'Improving';
+    if (worseningRatio > 0.4) return 'Worsening';
     return 'Stable';
   };
 

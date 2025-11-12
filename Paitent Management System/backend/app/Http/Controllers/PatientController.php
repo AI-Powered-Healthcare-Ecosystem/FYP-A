@@ -43,6 +43,20 @@ class PatientController extends Controller
             'third_visit_date' => $validated['third_visit_date'] ?? null,
             'user_id' => $request->has('user_id') ? $request->input('user_id') : null, // 👈 Only assign if explicitly sent
             'assigned_doctor_id' => $request->input('assigned_doctor_id'),
+            // Therapy effectiveness fields
+            'ethnicity' => $validated['ethnicity'] ?? null,
+            'weight1' => $validated['weight1'] ?? null,
+            'weight2' => $validated['weight2'] ?? null,
+            'weight3' => $validated['weight3'] ?? null,
+            'bmi1' => $validated['bmi1'] ?? null,
+            'bmi3' => $validated['bmi3'] ?? null,
+            'sbp' => $validated['sbp'] ?? null,
+            'dbp' => $validated['dbp'] ?? null,
+            'egfr1' => $validated['egfr1'] ?? null,
+            'egfr3' => $validated['egfr3'] ?? null,
+            'uacr1' => $validated['uacr1'] ?? null,
+            'uacr3' => $validated['uacr3'] ?? null,
+            'freq_smbg' => $validated['freq_smbg'] ?? null,
         ]);
 
         // Calculate derived fields
@@ -68,6 +82,8 @@ class PatientController extends Controller
         // Gap fields should represent day differences between visits
         $patient->gap_from_initial_visit = ($firstVisit && $thirdVisit) ? $firstVisit->diffInDays($thirdVisit) : null;
         $patient->gap_from_first_clinical_visit = ($secondVisit && $thirdVisit) ? $secondVisit->diffInDays($thirdVisit) : null;
+        $patient->gap_1_2_days = ($firstVisit && $secondVisit) ? $firstVisit->diffInDays($secondVisit) : null;
+        $patient->gap_2_3_days = ($secondVisit && $thirdVisit) ? $secondVisit->diffInDays($thirdVisit) : null;
         $patient->dds_trend_1_3 = ($dds1 !== null && $dds3 !== null) ? ($dds3 - $dds1) : null;
 
         $patient->save();
@@ -134,6 +150,20 @@ class PatientController extends Controller
     $patient->first_visit_date = $validated['first_visit_date'] ?? null;
     $patient->second_visit_date = $validated['second_visit_date'] ?? null;
     $patient->third_visit_date = $validated['third_visit_date'] ?? null;
+    // Therapy effectiveness fields
+    $patient->ethnicity = $validated['ethnicity'] ?? null;
+    $patient->weight1 = $validated['weight1'] ?? null;
+    $patient->weight2 = $validated['weight2'] ?? null;
+    $patient->weight3 = $validated['weight3'] ?? null;
+    $patient->bmi1 = $validated['bmi1'] ?? null;
+    $patient->bmi3 = $validated['bmi3'] ?? null;
+    $patient->sbp = $validated['sbp'] ?? null;
+    $patient->dbp = $validated['dbp'] ?? null;
+    $patient->egfr1 = $validated['egfr1'] ?? null;
+    $patient->egfr3 = $validated['egfr3'] ?? null;
+    $patient->uacr1 = $validated['uacr1'] ?? null;
+    $patient->uacr3 = $validated['uacr3'] ?? null;
+    $patient->freq_smbg = $validated['freq_smbg'] ?? null;
 
     // Derived calculations
     $fvg1 = $validated['fvg_1'] ?? null;
@@ -158,6 +188,8 @@ class PatientController extends Controller
     // Gap fields should represent day differences between visits
     $patient->gap_from_initial_visit = ($firstVisit && $thirdVisit) ? $firstVisit->diffInDays($thirdVisit) : null;
     $patient->gap_from_first_clinical_visit = ($secondVisit && $thirdVisit) ? $secondVisit->diffInDays($thirdVisit) : null;
+    $patient->gap_1_2_days = ($firstVisit && $secondVisit) ? $firstVisit->diffInDays($secondVisit) : null;
+    $patient->gap_2_3_days = ($secondVisit && $thirdVisit) ? $secondVisit->diffInDays($thirdVisit) : null;
     $patient->dds_trend_1_3 = ($dds1 !== null && $dds3 !== null) ? ($dds3 - $dds1) : null;
 
     $patient->save();

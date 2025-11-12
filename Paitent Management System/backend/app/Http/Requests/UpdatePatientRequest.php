@@ -51,7 +51,7 @@ class UpdatePatientRequest extends FormRequest
             'dbp' => 'nullable|numeric|min:30|max:200',
             'uacr1' => 'nullable|numeric|min:0',
             'uacr3' => 'nullable|numeric|min:0',
-            'freq_smbg' => 'nullable|integer|min:0|max:10',
+            'freq_smbg' => 'nullable|integer|min:0|max:1000',
         ];
     }
 }
