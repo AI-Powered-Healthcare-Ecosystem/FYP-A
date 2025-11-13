@@ -93,12 +93,36 @@ function Layout({ children }) {
           {/* Admin Sidebar */}
           {role === 'admin' && (
             <div className={`${isOpen ? 'px-2' : 'px-0'}`}>
-              <ul className="space-y-1 mt-2">
+              {/* Manage Section */}
+              {isOpen && (
+                <div className="px-2 py-2 mt-2">
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">Manage</h3>
+                </div>
+              )}
+              <ul className="space-y-1">
                 <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '60ms' : '0ms' }}>
                   <NavItem to="/admin/users" icon={<Settings size={18} />} label="Manage Users" isOpen={isOpen} />
                 </li>
                 <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '80ms' : '0ms' }}>
                   <NavItem to="/admin/patients" icon={<Users size={18} />} label="Manage Patients" isOpen={isOpen} />
+                </li>
+              </ul>
+
+              {/* Functions Section */}
+              {isOpen && (
+                <div className="px-2 py-2 mt-4">
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">Functions</h3>
+                </div>
+              )}
+              <ul className="space-y-1">
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '100ms' : '0ms' }}>
+                  <NavItem to="/predict" icon={<BarChart3 size={18} />} label="Risk Dashboard" isOpen={isOpen} />
+                </li>
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '120ms' : '0ms' }}>
+                  <NavItem to="/therapy-effectiveness" icon={<Activity size={18} />} label="Therapy Dashboard" isOpen={isOpen} />
+                </li>
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '140ms' : '0ms' }}>
+                  <NavItem to="/treatment-recommendation" icon={<Stethoscope size={18} />} label="Treatment Dashboard" isOpen={isOpen} />
                 </li>
               </ul>
             </div>

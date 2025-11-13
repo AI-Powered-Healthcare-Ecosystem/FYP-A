@@ -48,16 +48,121 @@ const CreatePatient = () => {
   });
 
   const [formData, setFormData] = useState(makeInitialFormData);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateField = (name, value) => {
+    const errors = {};
+    
+    switch (name) {
+      case 'name':
+        if (!value.trim()) errors.name = 'Name is required';
+        break;
+      case 'gender':
+        if (!value) errors.gender = 'Gender is required';
+        break;
+      case 'age':
+        if (value && (isNaN(value) || value < 0 || value > 150)) {
+          errors.age = 'Age must be between 0 and 150';
+        }
+        break;
+      case 'height_cm':
+        if (value && (isNaN(value) || value < 30 || value > 250)) {
+          errors.height_cm = 'Height must be between 30 and 250 cm';
+        }
+        break;
+      case 'weight_kg':
+      case 'weight1':
+      case 'weight2':
+      case 'weight3':
+        if (value && (isNaN(value) || value < 10 || value > 400)) {
+          errors[name] = 'Weight must be between 10 and 400 kg';
+        }
+        break;
+      case 'bmi1':
+      case 'bmi3':
+        if (value && (isNaN(value) || value < 10 || value > 100)) {
+          errors[name] = 'BMI must be between 10 and 100';
+        }
+        break;
+      case 'sbp':
+        if (value && (isNaN(value) || value < 50 || value > 300)) {
+          errors.sbp = 'Systolic BP must be between 50 and 300 mmHg';
+        }
+        break;
+      case 'dbp':
+        if (value && (isNaN(value) || value < 30 || value > 200)) {
+          errors.dbp = 'Diastolic BP must be between 30 and 200 mmHg';
+        }
+        break;
+      case 'freq_smbg':
+        if (value && (isNaN(value) || value < 0 || value > 1000)) {
+          errors.freq_smbg = 'SMBG frequency must be between 0 and 1000';
+        }
+        break;
+    }
+    
+    return errors;
+  };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Update form data
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Real-time validation
+    const fieldErrors = validateField(name, value);
+    setValidationErrors(prev => ({
+      ...prev,
+      ...fieldErrors,
+      // Clear error if field is now valid
+      ...(Object.keys(fieldErrors).length === 0 ? { [name]: undefined } : {})
+    }));
+    
+    // Clear messages when user starts typing
+    if (errorMessage) setErrorMessage('');
+    if (successMessage) setSuccessMessage('');
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    // Check required fields
+    if (!formData.name.trim()) errors.name = 'Name is required';
+    if (!formData.gender) errors.gender = 'Gender is required';
+    
+    // Validate all fields
+    Object.keys(formData).forEach(key => {
+      const fieldErrors = validateField(key, formData[key]);
+      Object.assign(errors, fieldErrors);
+    });
+    
+    return errors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Clear previous messages
+    setErrorMessage('');
+    setSuccessMessage('');
+    setValidationErrors({});
+    
+    // Validate form
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setErrorMessage('Please fix the validation errors below');
+      return;
+    }
+    
+    setIsSubmitting(true);
 
     const enrichedData = {
       ...formData,
@@ -101,16 +206,42 @@ const CreatePatient = () => {
       const laravelUrl = import.meta.env.VITE_LARAVEL_URL || "http://localhost:8000";
       const res = await fetch(`${laravelUrl}/api/patients`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
         body: JSON.stringify(enrichedData)
       });
 
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-      await res.json();
-      alert('Patient created!');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        
+        if (res.status === 422) {
+          // Laravel validation errors
+          setValidationErrors(errorData.errors || {});
+          setErrorMessage('Please fix the validation errors below');
+          return;
+        }
+        
+        throw new Error(errorData.message || `Server error: ${res.status}`);
+      }
+      
+      const result = await res.json();
+      setSuccessMessage('Patient created successfully!');
+      
+      // Reset form after successful creation
+      setTimeout(() => {
+        setFormData(makeInitialFormData());
+        setAssignedDoctorId('');
+        setSuccessMessage('');
+      }, 2000);
+      
     } catch (err) {
       console.error('Submission error:', err);
-      alert('Failed to create patient. The API might not be implemented yet.');
+      setErrorMessage(err.message || 'Failed to create patient. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -151,6 +282,38 @@ const CreatePatient = () => {
       </Card>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="rounded-lg bg-green-50 border border-green-200 p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-green-800">{successMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-red-800">{errorMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {user?.role === 'admin' && (
           <Card className="rounded-2xl bg-white shadow-md ring-1 ring-amber-100/70 px-6 py-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -175,14 +338,14 @@ const CreatePatient = () => {
         <Card className="rounded-2xl bg-white shadow-md ring-1 ring-indigo-100/70 px-6 py-6 space-y-6">
           <SectionHeader icon="🧍‍♂️" title="Basic information" subtitle="Demographics and lifestyle" />
           <div className="grid md:grid-cols-2 gap-4">
-            <Input label="Full name" name="name" value={formData.name} onChange={handleChange} placeholder="Enter patient's full name" />
-            <Input label="Age" name="age" type="number" value={formData.age} onChange={handleChange} placeholder="Enter age" />
-            <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
-            <Select label="Ethnicity" name="ethnicity" value={formData.ethnicity} onChange={handleChange} options={["Asian", "Caucasian", "African", "Hispanic", "Other"]} />
-            <Select label="Insulin regimen type" name="insulinType" value={formData.insulinType} onChange={handleChange} options={["BB", "PTDS", "PBD"]} />
-            <Input label="Height (cm)" name="height_cm" type="number" step="0.1" value={formData.height_cm} onChange={handleChange} placeholder="170.0" />
-            <Input label="Weight (kg)" name="weight_kg" type="number" step="0.1" value={formData.weight_kg} onChange={handleChange} placeholder="68.5" />
-            <Select label="Physical activity" name="physical_activity" value={formData.physical_activity} onChange={handleChange} options={['1–2 times per week','3–4 times per week','5–6 times per week','Daily']} />
+            <Input label="Full name" name="name" value={formData.name} onChange={handleChange} placeholder="Enter patient's full name" error={validationErrors.name} />
+            <Input label="Age" name="age" type="number" value={formData.age} onChange={handleChange} placeholder="Enter age" error={validationErrors.age} />
+            <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={["Male", "Female", "Other"]} error={validationErrors.gender} />
+            <Select label="Ethnicity" name="ethnicity" value={formData.ethnicity} onChange={handleChange} options={["Asian", "Caucasian", "African", "Hispanic", "Other"]} error={validationErrors.ethnicity} />
+            <Select label="Insulin regimen type" name="insulinType" value={formData.insulinType} onChange={handleChange} options={["BB", "PTDS", "PBD"]} error={validationErrors.insulinType} />
+            <Input label="Height (cm)" name="height_cm" type="number" step="0.1" value={formData.height_cm} onChange={handleChange} placeholder="170.0" error={validationErrors.height_cm} />
+            <Input label="Weight (kg)" name="weight_kg" type="number" step="0.1" value={formData.weight_kg} onChange={handleChange} placeholder="68.5" error={validationErrors.weight_kg} />
+            <Select label="Physical activity" name="physical_activity" value={formData.physical_activity} onChange={handleChange} options={['1–2 times per week','3–4 times per week','5–6 times per week','Daily']} error={validationErrors.physical_activity} />
           </div>
         </Card>
 
@@ -217,20 +380,20 @@ const CreatePatient = () => {
 
           <Fieldset title="Body composition per visit">
             <div className="grid md:grid-cols-3 gap-4">
-              <Input name="weight1" label="Weight (Visit 1)" type="number" step="0.1" value={formData.weight1} onChange={handleChange} placeholder="kg" />
-              <Input name="weight2" label="Weight (Visit 2)" type="number" step="0.1" value={formData.weight2} onChange={handleChange} placeholder="kg" />
-              <Input name="weight3" label="Weight (Visit 3)" type="number" step="0.1" value={formData.weight3} onChange={handleChange} placeholder="kg" />
+              <Input name="weight1" label="Weight (Visit 1)" type="number" step="0.1" value={formData.weight1} onChange={handleChange} placeholder="kg" error={validationErrors.weight1} />
+              <Input name="weight2" label="Weight (Visit 2)" type="number" step="0.1" value={formData.weight2} onChange={handleChange} placeholder="kg" error={validationErrors.weight2} />
+              <Input name="weight3" label="Weight (Visit 3)" type="number" step="0.1" value={formData.weight3} onChange={handleChange} placeholder="kg" error={validationErrors.weight3} />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
-              <Input name="bmi1" label="BMI (Visit 1)" type="number" step="0.1" value={formData.bmi1} onChange={handleChange} placeholder="kg/m²" />
-              <Input name="bmi3" label="BMI (Visit 3)" type="number" step="0.1" value={formData.bmi3} onChange={handleChange} placeholder="kg/m²" />
+              <Input name="bmi1" label="BMI (Visit 1)" type="number" step="0.1" value={formData.bmi1} onChange={handleChange} placeholder="kg/m²" error={validationErrors.bmi1} />
+              <Input name="bmi3" label="BMI (Visit 3)" type="number" step="0.1" value={formData.bmi3} onChange={handleChange} placeholder="kg/m²" error={validationErrors.bmi3} />
             </div>
           </Fieldset>
 
           <Fieldset title="Blood pressure & renal function">
             <div className="grid md:grid-cols-2 gap-4">
-              <Input name="sbp" label="Systolic BP" type="number" value={formData.sbp} onChange={handleChange} placeholder="mmHg" />
-              <Input name="dbp" label="Diastolic BP" type="number" value={formData.dbp} onChange={handleChange} placeholder="mmHg" />
+              <Input name="sbp" label="Systolic BP" type="number" value={formData.sbp} onChange={handleChange} placeholder="mmHg" error={validationErrors.sbp} />
+              <Input name="dbp" label="Diastolic BP" type="number" value={formData.dbp} onChange={handleChange} placeholder="mmHg" error={validationErrors.dbp} />
             </div>
             <div className="grid md:grid-cols-3 gap-4">
               <Input name="egfr" label="eGFR (baseline)" type="number" step="0.1" value={formData.egfr} onChange={handleChange} placeholder="mL/min/1.73m²" />
@@ -260,6 +423,7 @@ const CreatePatient = () => {
                 onChange={handleChange} 
                 placeholder="checks per month (e.g., 228)" 
                 helperText="How many times per month does the patient check their blood sugar? Typical range: 38-749"
+                error={validationErrors.freq_smbg}
               />
             </div>
           </Fieldset>
@@ -283,9 +447,24 @@ const CreatePatient = () => {
           </button>
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-5 py-2.5 rounded-full border border-rose-200 bg-rose-500/90 text-white hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+            disabled={isSubmitting}
+            className={`inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-5 py-2.5 rounded-full border border-rose-200 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 ${
+              isSubmitting 
+                ? 'bg-rose-300 cursor-not-allowed' 
+                : 'bg-rose-500/90 hover:bg-rose-500'
+            }`}
           >
-            Create patient record
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+              </>
+            ) : (
+              'Create patient record'
+            )}
           </button>
         </div>
       </form>
@@ -296,7 +475,7 @@ const CreatePatient = () => {
 const labelClass = 'text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2 block';
 const controlBaseClass = 'w-full rounded-xl border border-white/70 bg-white/90 px-4 py-3 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-1 focus-visible:ring-offset-white transition';
 
-const Input = ({ label, name, value, onChange, placeholder, type = 'text', className = '' }) => (
+const Input = ({ label, name, value, onChange, placeholder, type = 'text', className = '', error }) => (
   <div className={className}>
     <label className={labelClass}>{label}</label>
     <input
@@ -305,12 +484,13 @@ const Input = ({ label, name, value, onChange, placeholder, type = 'text', class
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className={controlBaseClass}
+      className={`${controlBaseClass} ${error ? 'border-red-300 ring-red-300' : ''}`}
     />
+    {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
   </div>
 );
 
-const Textarea = ({ label, name, value, onChange, placeholder, className = '' }) => (
+const Textarea = ({ label, name, value, onChange, placeholder, className = '', error }) => (
   <div className={className}>
     <label className={labelClass}>{label}</label>
     <textarea
@@ -319,19 +499,20 @@ const Textarea = ({ label, name, value, onChange, placeholder, className = '' })
       onChange={onChange}
       placeholder={placeholder}
       rows="3"
-      className={`${controlBaseClass} min-h-[120px]`}
+      className={`${controlBaseClass} min-h-[120px] ${error ? 'border-red-300 ring-red-300' : ''}`}
     />
+    {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
   </div>
 );
 
-const Select = ({ label, name, value, onChange, options = [], placeholder = '', className = '' }) => (
+const Select = ({ label, name, value, onChange, options = [], placeholder = '', className = '', error }) => (
   <div className={className}>
     <label className={labelClass}>{label}</label>
     <select
       name={name}
       value={value}
       onChange={onChange}
-      className={controlBaseClass}
+      className={`${controlBaseClass} ${error ? 'border-red-300 ring-red-300' : ''}`}
     >
       <option value="">{placeholder || `Select ${label.toLowerCase()}`}</option>
       {options.map((opt) => {
@@ -341,6 +522,7 @@ const Select = ({ label, name, value, onChange, options = [], placeholder = '', 
         return <option key={opt.value} value={opt.value}>{opt.label}</option>;
       })}
     </select>
+    {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
   </div>
 );
 

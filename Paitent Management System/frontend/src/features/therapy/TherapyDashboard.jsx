@@ -27,12 +27,28 @@ const TherapyDashboard = () => {
   const [ageBandFilter, setAgeBandFilter] = useState('All');
 
   useEffect(() => {
-    const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
-    fetch(`${laravelUrl}/api/patients`)
-      .then((res) => res.json())
-      .then((data) => setPatients(data))
-      .catch((err) => console.error(err));
-  }, []);
+    const fetchPatients = async () => {
+      try {
+        const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
+        const params = new URLSearchParams({
+          ...(user?.role === 'doctor' ? { doctor_id: user.id } : {}),
+        });
+        const url = `${laravelUrl}/api/patients${params.toString() ? `?${params.toString()}` : ''}`;
+        const res = await fetch(url, {
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+        const data = await res.json();
+        setPatients(data);
+      } catch (err) {
+        console.error('Failed to fetch patients:', err);
+      }
+    };
+
+    if (user) {
+      fetchPatients();
+    }
+  }, [user]);
 
   // Load appointments and compute snapshot metrics
   useEffect(() => {

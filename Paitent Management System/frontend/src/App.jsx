@@ -112,6 +112,17 @@ function App() {
                 <Route path="/admin/patients/create" element={<CreatePatient />} />
                 <Route path="/admin/analytics" element={<SystemAnalytics />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
+                {/* Admin access to all dashboards and forms */}
+                <Route path="/patients" element={<PatientsList />} />
+                <Route path="/predict" element={<RiskDashboard />} />
+                <Route path="/therapy-effectiveness" element={<TherapyDashboard />} />
+                <Route path="/treatment-recommendation" element={<TreatmentRecommendationDashboard />} />
+                <Route path="/predict/:id" element={<RiskPredictionForm />} />
+                <Route path="/therapy-effectiveness/:id" element={<TherapyEffectivenessForm />} />
+                <Route path="/treatment-recommendation/:id" element={<TreatmentRecommendationForm />} />
+                <Route path="/patient/update/:id" element={<UpdatePatient />} />
+                <Route path="/appointments" element={<Appointments />} />
+                <Route path="/patients/:id/messages" element={<MessagesThread />} />
               </>
             )}
 

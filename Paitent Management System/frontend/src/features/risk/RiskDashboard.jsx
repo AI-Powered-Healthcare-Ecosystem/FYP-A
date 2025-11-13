@@ -6,6 +6,7 @@ import { patientsApi } from '../../api/patients';
 import { fastApiClient } from '../../api/client';
 import RiskBadge from '../../components/RiskBadge.jsx';
 import Card from '../../components/Card.jsx';
+import { useUser } from '@/UserContext.jsx';
 import {
   Activity,
   Search as SearchIcon,
@@ -25,6 +26,7 @@ const RiskDashboard = () => {
   const [riskResults, setRiskResults] = useState({}); // { id: { value, label } }
   const [riskFilter, setRiskFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
+  const { user } = useUser();
 
   const riskCounts = Object.values(riskResults).reduce((acc, r) => {
     acc[r.label] = (acc[r.label] || 0) + 1;
@@ -63,12 +65,25 @@ const RiskDashboard = () => {
   };
 
   useEffect(() => {
-    patientsApi.getAll().then((data) => {
-      setPatients(data);
-      setFiltered(data);
-      runPredictions(data, false); // Trigger prediction API (not forced)
-    });
-  }, []);
+    const fetchPatients = async () => {
+      try {
+        const params = {
+          ...(user?.role === 'doctor' ? { doctor_id: user.id } : {}),
+        };
+        const { data } = await patientsApi.list(params);
+        const patientData = data || [];
+        setPatients(patientData);
+        setFiltered(patientData);
+        runPredictions(patientData, false); // Trigger prediction API (not forced)
+      } catch (error) {
+        console.error('Failed to fetch patients:', error);
+      }
+    };
+
+    if (user) {
+      fetchPatients();
+    }
+  }, [user]);
 
   const runPredictions = (data, force = false) => {
     // Reset results and fire all requests in parallel; update as each completes

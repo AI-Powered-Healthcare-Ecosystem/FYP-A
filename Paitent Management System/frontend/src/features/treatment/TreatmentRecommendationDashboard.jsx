@@ -15,14 +15,26 @@ const TreatmentRecommendationDashboard = () => {
   const [appts, setAppts] = useState([]);
 
   useEffect(() => {
-    const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
-    fetch(`${laravelUrl}/api/patients`)
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchPatients = async () => {
+      try {
+        const laravelUrl = import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000';
+        const params = new URLSearchParams({
+          ...(user?.role === 'doctor' ? { doctor_id: user.id } : {}),
+        });
+        const url = `${laravelUrl}/api/patients${params.toString() ? `?${params.toString()}` : ''}`;
+        const res = await fetch(url, {
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+        const data = await res.json();
         setPatients(data);
         setFiltered(data);
-      });
-  }, []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchPatients();
+  }, [user]);
 
   // Load appointments to detect upcoming per patient
   useEffect(() => {

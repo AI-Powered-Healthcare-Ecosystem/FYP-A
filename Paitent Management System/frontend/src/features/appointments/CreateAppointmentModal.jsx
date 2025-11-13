@@ -32,8 +32,63 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
     return () => { cancelled = true; };
   }, [isOpen, user]);
 
+  // Get current date and time for validation
+  const getCurrentDate = () => {
+    const now = new Date();
+    return now.toISOString().split('T')[0]; // YYYY-MM-DD format
+  };
+
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5); // HH:MM format
+  };
+
+  const isToday = (date) => {
+    return date === getCurrentDate();
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Validate date selection
+    if (name === 'date') {
+      const selectedDate = value;
+      const currentDate = getCurrentDate();
+      
+      if (selectedDate < currentDate) {
+        setError('Cannot select a date in the past');
+        return;
+      }
+      
+      // If selecting today and there's already a time selected, validate it
+      if (isToday(selectedDate) && formData.time) {
+        const currentTime = getCurrentTime();
+        if (formData.time <= currentTime) {
+          setFormData(prev => ({
+            ...prev,
+            [name]: value,
+            time: '' // Clear time if it's in the past
+          }));
+          setError('Selected time has passed. Please choose a future time.');
+          return;
+        }
+      }
+    }
+    
+    // Validate time selection
+    if (name === 'time') {
+      const selectedTime = value;
+      
+      if (isToday(formData.date)) {
+        const currentTime = getCurrentTime();
+        if (selectedTime <= currentTime) {
+          setError('Cannot select a time in the past');
+          return;
+        }
+      }
+    }
+    
+    setError(''); // Clear any previous errors
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -147,6 +202,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
                   name="date"
                   value={formData.date}
                   onChange={handleChange}
+                  min={getCurrentDate()}
                   className="mt-1 block w-full pl-10 pr-3 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                   required
                 />
@@ -167,6 +223,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
                   name="time"
                   value={formData.time}
                   onChange={handleChange}
+                  min={isToday(formData.date) ? getCurrentTime() : undefined}
                   className="mt-1 block w-full pl-10 pr-3 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                   required
                 />
