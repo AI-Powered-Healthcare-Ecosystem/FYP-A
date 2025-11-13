@@ -575,7 +575,7 @@ const TherapyDashboard = () => {
                 <MetricTile label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="emerald" />
                 <MetricTile label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="blue" />
                 <MetricTile label="DDS Δ" value={p.dds_trend_1_3 ?? '—'} tone="purple" />
-                <MetricTile label="Adherence" value={`${Math.round((p.med_adherence ?? 0) * 100)}%`} tone="amber" />
+                <MetricTile label="eGFR" value={p.egfr3 || p.egfr1 || p.egfr ? `${Math.round(p.egfr3 || p.egfr1 || p.egfr)}` : '—'} tone="blue" />
               </div>
 
               <div className="flex items-center justify-between text-xs text-slate-400">

@@ -407,19 +407,34 @@ const PatientsList = ({ hideHeader = false }) => {
               <th className="px-4 py-2.5">
                 <button onClick={() => toggleSort('gender')} className="inline-flex items-center gap-1 hover:text-gray-900">Gender {sortBy==='gender' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
               </th>
+              <th className="px-4 py-2.5">Ethnicity</th>
               <th className="px-4 py-2.5">Insulin</th>
               <th className="px-4 py-2.5">FVG</th>
+              <th className="px-4 py-2.5">FVG 1st</th>
+              <th className="px-4 py-2.5">FVG 2nd</th>
+              <th className="px-4 py-2.5">FVG 3rd</th>
               <th className="px-4 py-2.5">HbA1c 1st</th>
               <th className="px-4 py-2.5">HbA1c 2nd</th>
               <th className="px-4 py-2.5">HbA1c 3rd</th>
               <th className="px-4 py-2.5">Avg FVG</th>
               <th className="px-4 py-2.5">FVG Δ</th>
               <th className="px-4 py-2.5">HbA1c Δ</th>
+              <th className="px-4 py-2.5">HbA1c Δ (2→3)</th>
               <th className="px-4 py-2.5">Drop/Day</th>
+              <th className="px-4 py-2.5">Weight 1st</th>
+              <th className="px-4 py-2.5">Weight 2nd</th>
+              <th className="px-4 py-2.5">Weight 3rd</th>
+              <th className="px-4 py-2.5">BMI 1st</th>
+              <th className="px-4 py-2.5">BMI 3rd</th>
+              <th className="px-4 py-2.5">SBP</th>
+              <th className="px-4 py-2.5">DBP</th>
+              <th className="px-4 py-2.5">eGFR</th>
+              <th className="px-4 py-2.5">eGFR 1st</th>
+              <th className="px-4 py-2.5">eGFR 3rd</th>
+              <th className="px-4 py-2.5">UACR 1st</th>
+              <th className="px-4 py-2.5">UACR 3rd</th>
               <th className="px-4 py-2.5">DDS Δ</th>
               <th className="px-4 py-2.5">BG Mon.</th>
-              <th className="px-4 py-2.5">Gap (1st→3rd)</th>
-              <th className="px-4 py-2.5">Gap (2nd→3rd)</th>
               <th className="px-4 py-2.5">
                 <button onClick={() => toggleSort('status')} className="inline-flex items-center gap-1 hover:text-gray-900">Status {sortBy==='status' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
               </th>
@@ -429,7 +444,7 @@ const PatientsList = ({ hideHeader = false }) => {
             <tbody>
               {filteredPatients.length === 0 ? (
                 <tr>
-                  <td colSpan="17" className="text-center py-6 text-gray-500">
+                  <td colSpan="33" className="text-center py-6 text-gray-500">
                     No matching patients found.
                   </td>
                 </tr>
@@ -447,25 +462,40 @@ const PatientsList = ({ hideHeader = false }) => {
                         {p.gender}
                       </span>
                     </td>
+                    <td className="px-4 py-2.5">{p.ethnicity || '-'}</td>
                     <td className="px-4 py-2.5">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${insulinColors[p.insulin_regimen_type] || 'bg-gray-100 text-gray-500'}`}>
                         {p.insulin_regimen_type || '-'}
                       </span>
                     </td>
                     <td className="px-4 py-2.5">{p.fvg ?? '-'}</td>
+                    <td className="px-4 py-2.5">{p.fvg_1 ? Number(p.fvg_1).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.fvg_2 ? Number(p.fvg_2).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.fvg_3 ? Number(p.fvg_3).toFixed(1) : '-'}</td>
                     <td className="px-4 py-2.5">{p.hba1c_1st_visit ? Number(p.hba1c_1st_visit).toFixed(2) : '-'}</td>
                     <td className="px-4 py-2.5">{p.hba1c_2nd_visit ? Number(p.hba1c_2nd_visit).toFixed(2) : '-'}</td>
                     <td className="px-4 py-2.5">{p.hba1c_3rd_visit ? Number(p.hba1c_3rd_visit).toFixed(2) : '-'}</td>
                     <td className="px-4 py-2.5">{p.avg_fvg_1_2 ?? '-'}</td>
                     <td className="px-4 py-2.5">{formatTrend(p.fvg_delta_1_2)}</td>
                     <td className="px-4 py-2.5">{formatTrend(p.reduction_a)}</td>
+                    <td className="px-4 py-2.5">{formatTrend(p.reduction_a_2_3)}</td>
                     <td className="px-4 py-2.5">{formatTrend(p.reduction_a_per_day)}</td>
+                    <td className="px-4 py-2.5">{p.weight1 ? Number(p.weight1).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.weight2 ? Number(p.weight2).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.weight3 ? Number(p.weight3).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.bmi1 ? Number(p.bmi1).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.bmi3 ? Number(p.bmi3).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.sbp ? Math.round(p.sbp) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.dbp ? Math.round(p.dbp) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.egfr ? Number(p.egfr).toFixed(0) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.egfr1 ? Number(p.egfr1).toFixed(0) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.egfr3 ? Number(p.egfr3).toFixed(0) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.uacr1 ? Number(p.uacr1).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5">{p.uacr3 ? Number(p.uacr3).toFixed(1) : '-'}</td>
                     <td className="px-4 py-2.5">{formatTrend(p.dds_trend_1_3)}</td>
                     <td className="px-4 py-2.5" title={p.freq_smbg ? `${p.freq_smbg} checks/month (~${(p.freq_smbg / 30).toFixed(1)}/day)` : 'Not recorded'}>
                       {p.freq_smbg ? `${p.freq_smbg}` : '-'}
                     </td>
-                    <td className="px-4 py-2.5">{formatGap(p.gap_from_initial_visit)}</td>
-                    <td className="px-4 py-2.5">{formatGap(p.gap_from_first_clinical_visit)}</td>
                     <td className="px-4 py-2.5">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getStatusTag(p) === 'Improving' ? 'bg-green-100 text-green-700' : getStatusTag(p) === 'Worsening' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
                         {getStatusTag(p)}
