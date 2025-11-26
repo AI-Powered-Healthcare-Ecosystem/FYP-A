@@ -220,12 +220,12 @@ const RiskDashboard = () => {
   };
 
   const mapNumericRisk = (val) => {
-    if (val < 5.7) return 'Normal';
-    if (val < 6.5) return 'At Risk';
-    if (val < 7.1) return 'Moderate Risk';
-    if (val < 8.1) return 'Risky';
-    if (val <= 9.0) return 'Very Risky';
-    return 'Critical';
+    if (val < 5.7) return 'Normal';           // Optimal/Very Low + Normal (< 5.0% and 5.0-5.6%)
+    if (val < 6.5) return 'At Risk';         // Prediabetes (5.7-6.4%)
+    if (val < 8.1) return 'Moderate Risk';   // Early Diabetes + Suboptimal Control (6.5-7.0% and 7.1-8.0%)
+    if (val < 9.1) return 'Risky';           // Poor Control (8.1-9.0%)
+    if (val <= 10.0) return 'Very Risky';    // Very Poor Control (9.1-10.0%)
+    return 'Critical';                       // Severely Uncontrolled (> 10.0%)
   };
 
   // Badge colors are handled by RiskBadge component

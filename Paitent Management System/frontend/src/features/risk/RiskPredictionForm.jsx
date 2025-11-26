@@ -127,12 +127,12 @@ function RiskPredictionForm() {
   }, [id, reloadKey, forceRefresh]);
 
   const mapNumericRisk = (val) => {
-    if (val < 5.7) return 'Normal';
-    if (val < 6.5) return 'At Risk';
-    if (val < 7.1) return 'Moderate Risk';
-    if (val < 8.1) return 'Risky';
-    if (val <= 9.0) return 'Very Risky';
-    return 'Critical';
+    if (val < 5.7) return 'Normal';           // Optimal/Very Low + Normal (< 5.0% and 5.0-5.6%)
+    if (val < 6.5) return 'At Risk';         // Prediabetes (5.7-6.4%)
+    if (val < 8.1) return 'Moderate Risk';   // Early Diabetes + Suboptimal Control (6.5-7.0% and 7.1-8.0%)
+    if (val < 9.1) return 'Risky';           // Poor Control (8.1-9.0%)
+    if (val <= 10.0) return 'Very Risky';    // Very Poor Control (9.1-10.0%)
+    return 'Critical';                       // Severely Uncontrolled (> 10.0%)
   };
 
   // UI color tokens for ring + text + bg
@@ -151,17 +151,17 @@ function RiskPredictionForm() {
   const riskStops = [
     { label: 'Normal', min: 4.0, max: 5.7, color: 'bg-emerald-500' },
     { label: 'At Risk', min: 5.7, max: 6.5, color: 'bg-amber-400' },
-    { label: 'Moderate', min: 6.5, max: 7.1, color: 'bg-amber-500' },
-    { label: 'Risky', min: 7.1, max: 8.1, color: 'bg-orange-500' },
-    { label: 'Very', min: 8.1, max: 9.0, color: 'bg-rose-500' },
-    { label: 'Critical', min: 9.0, max: 10.0, color: 'bg-rose-700' }
+    { label: 'Moderate', min: 6.5, max: 8.1, color: 'bg-amber-500' },
+    { label: 'Risky', min: 8.1, max: 9.1, color: 'bg-orange-500' },
+    { label: 'Very Risky', min: 9.1, max: 10.0, color: 'bg-rose-500' },
+    { label: 'Critical', min: 10.0, max: 12.0, color: 'bg-rose-700' }
   ];
 
   const gaugePercent = useMemo(() => {
     if (!result?.raw) return 0;
-    // map ~4.0–10.0 to 0–100%
-    const clamped = Math.max(4.0, Math.min(10.0, result.raw));
-    return ((clamped - 4.0) / (10.0 - 4.0)) * 100;
+    // map ~4.0–12.0 to 0–100%
+    const clamped = Math.max(4.0, Math.min(12.0, result.raw));
+    return ((clamped - 4.0) / (12.0 - 4.0)) * 100;
   }, [result]);
 
   const keyFactors = useMemo(() => {
@@ -495,12 +495,13 @@ function RiskScale({ percent = 0, stops = [] }) {
         <div className="w-0 h-0 border-l-6 border-r-6 border-b-8 border-transparent border-b-gray-700 mx-auto" />
       </div>
       <div className="flex justify-between text-[10px] text-gray-500 mt-1">
-        <span>5.0</span>
-        <span>6.0</span>
-        <span>7.0</span>
-        <span>8.0</span>
-        <span>9.0</span>
-        <span>10+</span>
+        <span>4.0</span>
+        <span>5.7</span>
+        <span>6.5</span>
+        <span>8.1</span>
+        <span>9.1</span>
+        <span>10.0</span>
+        <span>12+</span>
       </div>
     </div>
   );
