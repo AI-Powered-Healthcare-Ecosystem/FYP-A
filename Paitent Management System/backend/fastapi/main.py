@@ -779,7 +779,7 @@ Instructions:
         logging.info(f"Session ID: {payload['session_id']}")
         logging.info("="*80)
         
-        langflow_response = requests.post(langflow_url, json=payload, headers=headers, timeout=30)
+        langflow_response = requests.post(langflow_url, json=payload, headers=headers, timeout=120)
         
         logging.info("="*80)
         logging.info(f"LANGFLOW RESPONSE - Status Code: {langflow_response.status_code}")
