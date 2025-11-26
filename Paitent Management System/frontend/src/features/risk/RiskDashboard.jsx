@@ -33,7 +33,7 @@ const RiskDashboard = () => {
     return acc;
   }, {});
 
-  const riskCategories = ['Normal', 'At Risk', 'Moderate Risk', 'Risky', 'Very Risky', 'Critical'];
+  const riskCategories = ['Normal', 'Moderate Risk', 'At Risk', 'Risky', 'Very Risky', 'Critical'];
   const riskOptions = ['All', ...riskCategories];
   const counts = riskCategories.map(cat => riskCounts[cat] || 0);
 
@@ -146,8 +146,8 @@ const RiskDashboard = () => {
   const riskActiveClass = (label) => {
     const map = {
       Normal: 'bg-emerald-100 text-emerald-700',
-      'At Risk': 'bg-amber-100 text-amber-700',
-      'Moderate Risk': 'bg-yellow-100 text-yellow-700',
+      'Moderate Risk': 'bg-amber-100 text-amber-700',
+      'At Risk': 'bg-yellow-100 text-yellow-700',
       Risky: 'bg-orange-100 text-orange-700',
       'Very Risky': 'bg-red-100 text-red-700',
       Critical: 'bg-rose-100 text-rose-700',
@@ -187,10 +187,10 @@ const RiskDashboard = () => {
   const criticalCount = Object.values(riskResults).filter((r) => r.label === 'Critical').length;
   const highRiskShare = totalPredictions ? Math.round((highRiskCount / totalPredictions) * 100) : 0;
   const normalCount = riskCounts['Normal'] || 0;
-  const atRiskCount = riskCounts['At Risk'] || 0;
   const moderateCount = riskCounts['Moderate Risk'] || 0;
+  const atRiskCount = riskCounts['At Risk'] || 0;
   const riskyCount = riskCounts['Risky'] || 0;
-  const normalModerateCount = normalCount + atRiskCount + moderateCount + riskyCount;
+  const normalModerateCount = normalCount + moderateCount + atRiskCount + riskyCount;
   const recentHighRisk = patients
     .filter((p) => {
       const label = riskResults[p.id]?.label;
@@ -211,8 +211,8 @@ const RiskDashboard = () => {
   const visibleCards = filtered.slice(startIndex, startIndex + maxCardsPerPage);
   const backgroundByRisk = {
     normal: 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100',
-    'at risk': 'bg-amber-50 text-amber-900 hover:bg-amber-100',
-    'moderate risk': 'bg-yellow-50 text-yellow-900 hover:bg-yellow-100',
+    'moderate risk': 'bg-amber-50 text-amber-900 hover:bg-amber-100',
+    'at risk': 'bg-yellow-50 text-yellow-900 hover:bg-yellow-100',
     risky: 'bg-orange-50 text-orange-900 hover:bg-orange-100',
     'very risky': 'bg-red-50 text-red-900 hover:bg-red-100',
     critical: 'bg-rose-50 text-rose-900 hover:bg-rose-100',
@@ -221,8 +221,8 @@ const RiskDashboard = () => {
 
   const mapNumericRisk = (val) => {
     if (val < 5.7) return 'Normal';           // Optimal/Very Low + Normal (< 5.0% and 5.0-5.6%)
-    if (val < 6.5) return 'At Risk';         // Prediabetes (5.7-6.4%)
-    if (val < 8.1) return 'Moderate Risk';   // Early Diabetes + Suboptimal Control (6.5-7.0% and 7.1-8.0%)
+    if (val < 6.5) return 'Moderate Risk';   // Prediabetes (5.7-6.4%)
+    if (val < 8.1) return 'At Risk';         // Early Diabetes + Suboptimal Control (6.5-7.0% and 7.1-8.0%)
     if (val < 9.1) return 'Risky';           // Poor Control (8.1-9.0%)
     if (val <= 10.0) return 'Very Risky';    // Very Poor Control (9.1-10.0%)
     return 'Critical';                       // Severely Uncontrolled (> 10.0%)
