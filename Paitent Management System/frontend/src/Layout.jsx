@@ -129,16 +129,8 @@ function Layout({ children }) {
           )}
         </nav>
 
-          <div className={`mt-auto border-t border-white/20 ${isOpen ? 'p-3' : 'py-3 pl-12 pr-0'}`}>
-            <button
-              onClick={logout}
-              className={`flex items-center justify-center rounded-md transition text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${isOpen ? 'w-full gap-2 px-3 py-2' : 'gap-0 py-2'}`}
-              aria-label="Log Out"
-              title="Log Out"
-            >
-              <LogOut size={18} />
-              {isOpen && <span className="text-sm font-semibold tracking-wide">Log Out</span>}
-            </button>
+          <div className={`mt-auto border-t border-white/20 ${isOpen ? 'p-3' : 'py-3'}`}>
+            {/* Logout moved to header */}
           </div>
 
         </aside>
@@ -219,6 +211,7 @@ function RoleHeaderBar({ role }) {
           >
             <Settings size={18} />
           </NavLink>
+          <LogoutButton />
         </div>
       </div>
     </header>
@@ -478,5 +471,20 @@ function HoverAddPatientWrapper({ isOpen }) {
       <NavItem to="/patients" icon={<Users size={18} />} label="List of Patients" isOpen={isOpen} />
       {mounted && createPortal(chip, document.body)}
     </li>
+  );
+}
+
+function LogoutButton() {
+  const { logout } = useUser();
+  
+  return (
+    <button
+      onClick={logout}
+      className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white shadow text-red-500 hover:bg-red-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
+      title="Log Out"
+      aria-label="Log Out"
+    >
+      <LogOut size={18} />
+    </button>
   );
 }

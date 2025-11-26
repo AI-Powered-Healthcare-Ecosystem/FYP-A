@@ -14,6 +14,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
   const [patients, setPatients] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
   const { user } = useUser();
 
   // Fetch doctor's patients for dropdown when opened
@@ -130,7 +131,15 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
         type: payload.type,
         duration: `${payload.duration_minutes} min`,
       });
-      onClose();
+      
+      // Show success notification
+      setShowSuccess(true);
+      
+      // Close modal after showing success
+      setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+      }, 2000);
     } catch (err) {
       setError(err?.message || 'Failed to create appointment');
     } finally {
@@ -141,7 +150,24 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      {showSuccess && (
+        <div className="fixed inset-0 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm mx-4 border-2 border-green-500">
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex-shrink-0">
+                <svg className="h-16 w-16 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-semibold text-green-800 mb-1">Appointment Created!</p>
+                <p className="text-sm text-green-600">The appointment has been successfully scheduled.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="relative top-20 mx-auto p-5 border w-11/12 md:max-w-md shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium text-gray-900">Create New Appointment</h3>
@@ -178,7 +204,7 @@ export default function CreateAppointmentModal({ isOpen, onClose, onCreate }) {
                 required
               >
                 <option value="">Select a patient</option>
-                {patients.map((patient) => (
+                {[...patients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((patient) => (
                   <option key={patient.id} value={patient.id}>
                     {patient.name}
                   </option>

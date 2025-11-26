@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -23,7 +24,9 @@ import {
   NotebookPen,
   Send,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Users,
+  X
 } from 'lucide-react';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
@@ -39,6 +42,7 @@ const TreatmentRecommendation = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -189,145 +193,41 @@ Instructions:
     : null;
 
   return (
+    <>
     <div className="w-full px-6 md:px-10 lg:px-14 py-10 space-y-8">
-      <Card className="border-0 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-emerald-50 ring-1 ring-indigo-100/70 shadow-xl px-6 sm:px-8 py-8 space-y-6">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+      <div className="rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-emerald-50 ring-1 ring-indigo-100/70 shadow-xl px-6 sm:px-8 py-8 space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-5">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-500 shadow">
-              <Brain size={28} />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-500">
+              <Brain size={24} />
             </div>
-            <div className="space-y-1.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-indigo-400">Personalized therapy</p>
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Treatment Recommendation</h1>
-              <p className="text-sm text-indigo-500">
-                {patient.name} · {patient.age} y/o · {patient.gender} · Insulin regimen {patient.insulin_regimen_type || 'N/A'}
-              </p>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-indigo-400">Treatment Recommendation</p>
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{patient.name}</h1>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <HeroMetric icon={<Droplet size={16} />} label="HbA1c (latest)" value={`${(patient.hba1c_3rd_visit ?? patient.hba1c_2nd_visit ?? 0).toFixed(1)}%`} />
-            <HeroMetric icon={<HeartPulse size={16} />} label="DDS trend" value={`${Number(patient.dds_trend_1_3 ?? 0).toFixed(1)}`} />
-            <HeroMetric icon={<ShieldCheck size={16} />} label="eGFR" value={`${patient.egfr ?? '—'} mL/min`} />
-            <button
-              className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-500/90 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 disabled:opacity-60"
-              onClick={generateReport}
-              disabled={loading}
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              {loading ? 'Generating...' : aiResponse ? 'Regenerate report' : 'Generate report'}
-            </button>
-          </div>
+          <button
+            className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-500/90 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-indigo-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 disabled:opacity-60"
+            onClick={generateReport}
+            disabled={loading}
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+            {loading ? 'Generating...' : aiResponse ? 'Regenerate report' : 'Generate report'}
+          </button>
         </div>
-      </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <InfoTile icon={<ClipboardPlus size={16} />} label="Name" value={patient.name} />
-        <InfoTile icon={<CalendarClock size={16} />} label="Age" value={`${patient.age} years`} />
-        <InfoTile icon={<Activity size={16} />} label="Gender" value={patient.gender} />
-        <InfoTile icon={<BarChart3 size={16} />} label="Insulin regimen" value={patient.insulin_regimen_type || 'Not specified'} />
-      </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <InfoTile icon={<Activity size={16} />} label="Gender" value={patient.gender} />
+          <InfoTile icon={<CalendarClock size={16} />} label="Age" value={`${patient.age} years`} />
+          <InfoTile icon={<Users size={16} />} label="Race" value={patient.ethnicity || 'Not specified'} />
+        </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_500px]">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryTile tone="emerald" icon={<Droplet size={18} />} label="HbA1c Δ" value={`↓ ${(patient.reduction_a ?? 0).toFixed(1)}%`} />
           <SummaryTile tone="cyan" icon={<Activity size={18} />} label="FVG Δ (1→2)" value={`${Number(fvgDrop ?? 0).toFixed(1)}`} />
           <SummaryTile tone="purple" icon={<HeartPulse size={18} />} label="DDS Δ (1→3)" value={`${Number(ddsTrend ?? 0).toFixed(1)}`} />
           <SummaryTile tone="sky" icon={<ShieldCheck size={18} />} label="eGFR" value={`${egfr} mL/min`} />
         </div>
-        
-        <Card className="rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50 shadow-md ring-1 ring-indigo-100/70 flex flex-col h-[600px]">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-indigo-100">
-            <MessageCircle size={18} className="text-indigo-500" />
-            <h3 className="text-sm font-semibold text-slate-800">Medical Assistant</h3>
-            <span className="ml-auto text-xs text-indigo-400">Ask questions about treatment</span>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-            {chatMessages.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-center">
-                <div className="space-y-2">
-                  <MessageCircle size={32} className="mx-auto text-indigo-300" />
-                  <p className="text-sm text-slate-500">Ask me anything about diabetes treatment,</p>
-                  <p className="text-xs text-slate-400">medications, or lifestyle recommendations</p>
-                </div>
-              </div>
-            ) : (
-              chatMessages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-2 ${
-                    msg.role === 'user' 
-                      ? 'bg-indigo-500 text-white' 
-                      : 'bg-white border border-indigo-100 text-slate-700'
-                  }`}>
-                    {msg.role === 'user' ? (
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    ) : (
-                      <div 
-                        className="text-sm prose prose-sm max-w-none" 
-                        dangerouslySetInnerHTML={{ __html: parseMarkdownBold(msg.content) }}
-                      />
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-            {chatLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white border border-indigo-100 rounded-2xl px-4 py-2">
-                  <Loader2 size={16} className="animate-spin text-indigo-500" />
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-          
-          <div className="px-4 py-3 border-t border-indigo-100">
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (!chatInput.trim() || chatLoading) return;
-              
-              const userMessage = chatInput.trim();
-              setChatInput("");
-              setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-              setChatLoading(true);
-              
-              try {
-                const fastApiUrl = import.meta.env.VITE_FASTAPI_URL || "http://localhost:5000";
-                const response = await fetch(`${fastApiUrl}/treatment-chat`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    patient,
-                    question: userMessage
-                  })
-                });
-                const data = await response.json();
-                setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-              } catch (err) {
-                setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
-              } finally {
-                setChatLoading(false);
-                setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-              }
-            }} className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask a question..."
-                className="flex-1 rounded-full border border-indigo-200 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                disabled={chatLoading}
-              />
-              <button
-                type="submit"
-                disabled={!chatInput.trim() || chatLoading}
-                className="rounded-full bg-indigo-500 p-2 text-white hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send size={18} />
-              </button>
-            </form>
-          </div>
-        </Card>
       </div>
 
       {loading ? (
@@ -352,6 +252,146 @@ Instructions:
         </Card>
       )}
     </div>
+
+      {/* Collapsible Chat Window - Rendered via Portal to document.body */}
+      {createPortal(
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        {chatOpen ? (
+          /* Expanded Chat Window */
+          <div className="w-[480px] h-[700px] rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white cursor-pointer" onClick={() => setChatOpen(false)}>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
+                  <MessageCircle size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">Medical Assistant</h3>
+                </div>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setChatOpen(false);
+                }}
+                className="h-7 w-7 rounded-full hover:bg-white/20 flex items-center justify-center transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gradient-to-b from-slate-50/50 to-white">
+              {chatMessages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-center">
+                  <div className="space-y-2">
+                    <div className="h-12 w-12 mx-auto rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                      <MessageCircle size={24} className="text-indigo-500" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-700">How can I help?</p>
+                    <p className="text-xs text-slate-500 px-4">Ask about treatment, medications, or lifestyle</p>
+                  </div>
+                </div>
+              ) : (
+                chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
+                      msg.role === 'user' 
+                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' 
+                        : 'bg-white border border-slate-200 text-slate-700'
+                    }`}>
+                      {msg.role === 'user' ? (
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      ) : (
+                        <div 
+                          className="text-xs prose prose-sm max-w-none prose-headings:text-slate-800 prose-strong:text-slate-800" 
+                          dangerouslySetInnerHTML={{ __html: parseMarkdownBold(msg.content) }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+              {chatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-slate-200 rounded-2xl px-3 py-2 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Loader2 size={14} className="animate-spin text-indigo-500" />
+                      <span className="text-xs text-slate-500">Thinking...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input Form */}
+            <div className="px-4 py-3 border-t border-slate-200 bg-white">
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!chatInput.trim() || chatLoading) return;
+                
+                const userMessage = chatInput.trim();
+                setChatInput("");
+                setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+                setChatLoading(true);
+                
+                try {
+                  const fastApiUrl = import.meta.env.VITE_FASTAPI_URL || "http://localhost:5000";
+                  const response = await fetch(`${fastApiUrl}/treatment-chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      patient,
+                      question: userMessage
+                    })
+                  });
+                  const data = await response.json();
+                  setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+                } catch (err) {
+                  setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+                } finally {
+                  setChatLoading(false);
+                  setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                }
+              }} className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent focus:bg-white transition"
+                  disabled={chatLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() || chatLoading}
+                  className="rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-2 text-white hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send size={16} />
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          /* Collapsed Chat Button */
+          <button
+            onClick={() => setChatOpen(true)}
+            className="group relative h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 flex items-center justify-center ring-4 ring-white"
+            title="Open Medical Assistant"
+          >
+            <MessageCircle size={24} />
+            {chatMessages.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-semibold ring-2 ring-white">
+                {chatMessages.filter(m => m.role === 'assistant').length}
+              </span>
+            )}
+          </button>
+        )}
+      </div>,
+      document.body
+    )}
+    </>
   );
 };
 
@@ -416,22 +456,90 @@ const TrendCard = ({ label, values, unit, warn = false }) => {
 };
 
 const RiskBar = ({ label, value, tone, showHeader = true }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
   const palette = {
     danger: 'from-rose-500 via-rose-400 to-rose-500',
     warning: 'from-amber-400 via-amber-300 to-amber-400',
     safe: 'from-emerald-500 via-emerald-400 to-emerald-500',
   }[tone];
 
+  // Define tooltip content based on label
+  const getTooltipContent = () => {
+    const lower = label.toLowerCase();
+    if (lower.includes('complication')) {
+      return {
+        title: 'Complication Risk Criteria',
+        items: [
+          { level: 'Low (20%)', condition: 'HbA1c ≤ 7%' },
+          { level: 'Moderate (50%)', condition: 'HbA1c 7-8%' },
+          { level: 'High (80%)', condition: 'HbA1c > 8%' }
+        ]
+      };
+    }
+    if (lower.includes('kidney')) {
+      return {
+        title: 'Kidney Function Criteria',
+        items: [
+          { level: 'Good (20%)', condition: 'eGFR > 90 mL/min' },
+          { level: 'Moderate (50%)', condition: 'eGFR 60-90 mL/min' },
+          { level: 'High concern (80%)', condition: 'eGFR < 60 mL/min' }
+        ]
+      };
+    }
+    if (lower.includes('adherence')) {
+      return {
+        title: 'Adherence Risk Criteria',
+        items: [
+          { level: 'Low (20%)', condition: 'DDS trend ≤ 0.5' },
+          { level: 'Moderate (50%)', condition: 'DDS trend 0.5-1.5' },
+          { level: 'High (80%)', condition: 'DDS trend > 1.5' }
+        ]
+      };
+    }
+    return null;
+  };
+
+  const tooltipContent = getTooltipContent();
+
   return (
-    <div className="space-y-2">
+    <div className="relative space-y-2">
       {showHeader && (
         <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-500">
           <span className="text-sm font-semibold text-slate-700">{value}%</span>
         </div>
       )}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+      <div 
+        className="h-2 w-full overflow-hidden rounded-full bg-slate-100 cursor-help relative"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
         <div className={`h-full bg-gradient-to-r ${palette} transition-all`} style={{ width: `${value}%` }}></div>
       </div>
+      
+      {/* Custom Tooltip */}
+      {showTooltip && tooltipContent && (
+        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 pointer-events-none">
+          <div className="bg-slate-800 text-white rounded-lg shadow-xl p-3 text-xs">
+            <div className="font-semibold text-sm mb-2 text-slate-100">{tooltipContent.title}</div>
+            <div className="space-y-1.5">
+              {tooltipContent.items.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="text-emerald-400">•</span>
+                  <div>
+                    <span className="font-medium text-slate-200">{item.level}:</span>
+                    <span className="text-slate-300 ml-1">{item.condition}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Arrow */}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-px">
+              <div className="border-4 border-transparent border-t-slate-800"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

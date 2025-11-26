@@ -373,7 +373,7 @@ const RiskDashboard = () => {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.6fr)]">
-        <Card className="p-6 rounded-2xl bg-gradient-to-br from-white via-emerald-50 to-emerald-100 border border-emerald-100 shadow-sm">
+        <Card className="p-6 rounded-2xl bg-gradient-to-br from-white via-rose-50 to-rose-100 ring-1 ring-rose-100/60 shadow-md">
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-xs font-semibold uppercase tracking-[0.25em] text-slate-500`}>Risk distribution</h3>
             <span className="text-[11px] text-slate-400">Live predictions</span>
@@ -382,7 +382,7 @@ const RiskDashboard = () => {
             <Bar data={chartData} options={{ ...chartOptions, maintainAspectRatio: false }} />
           </div>
         </Card>
-        <Card className="p-6 rounded-2xl bg-gradient-to-br from-white via-amber-50 to-rose-100 ring-1 ring-amber-100/60 shadow-md space-y-4 flex flex-col">
+        <Card className="p-6 rounded-2xl bg-gradient-to-br from-white via-rose-50 to-rose-100 ring-1 ring-rose-100/60 shadow-md space-y-4 flex flex-col">
           <div className="flex items-start justify-between">
             <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Top risk</h3>
             <span className="text-[11px] text-slate-400">{topRiskPatients.length} listed</span>
@@ -475,14 +475,7 @@ const RiskDashboard = () => {
                     <h3 className="font-semibold text-base">{p.name}</h3>
                     <p className="text-xs opacity-80">{p.age} y/o · {p.gender}</p>
                   </div>
-                  {risk ? (
-                    <RiskBadge label={risk.label} />
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <div className="h-2 w-2 rounded-full bg-gray-300 animate-pulse" />
-                      <span className="text-xs font-medium text-gray-400">Loading...</span>
-                    </div>
-                  )}
+                  <RiskBadge label={risk?.label || 'Needs Review'} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">

@@ -52,6 +52,7 @@ const CreatePatient = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   const validateField = (name, value) => {
     const errors = {};
@@ -143,6 +144,23 @@ const CreatePatient = () => {
       Object.assign(errors, fieldErrors);
     });
     
+    // Validate visit dates are in chronological order
+    const firstDate = formData.first_visit_date ? new Date(formData.first_visit_date) : null;
+    const secondDate = formData.second_visit_date ? new Date(formData.second_visit_date) : null;
+    const thirdDate = formData.third_visit_date ? new Date(formData.third_visit_date) : null;
+    
+    if (firstDate && secondDate && secondDate < firstDate) {
+      errors.second_visit_date = 'Second visit date must be after first visit date';
+    }
+    
+    if (secondDate && thirdDate && thirdDate < secondDate) {
+      errors.third_visit_date = 'Third visit date must be after second visit date';
+    }
+    
+    if (firstDate && thirdDate && thirdDate < firstDate) {
+      errors.third_visit_date = 'Third visit date must be after first visit date';
+    }
+    
     return errors;
   };
 
@@ -229,17 +247,14 @@ const CreatePatient = () => {
       
       const result = await res.json();
       setSuccessMessage('Patient created successfully!');
+      setFormSubmitted(true);
       
-      // Reset form after successful creation
-      setTimeout(() => {
-        setFormData(makeInitialFormData());
-        setAssignedDoctorId('');
-        setSuccessMessage('');
-      }, 2000);
+      // Don't auto-reset - let user manually reset if they want to create another
       
     } catch (err) {
       console.error('Submission error:', err);
       setErrorMessage(err.message || 'Failed to create patient. Please try again.');
+      setFormSubmitted(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -264,6 +279,15 @@ const CreatePatient = () => {
     loadDoctors();
   }, [user]);
 
+  const handleCreateAnother = () => {
+    setFormData(makeInitialFormData());
+    setAssignedDoctorId('');
+    setSuccessMessage('');
+    setErrorMessage('');
+    setFormSubmitted(false);
+    setValidationErrors({});
+  };
+
   return (
     <div className="w-full px-6 md:px-10 lg:px-14 py-10 space-y-10">
       <Card className="border-0 rounded-3xl bg-gradient-to-br from-white via-rose-50 to-rose-100 ring-1 ring-rose-100/70 shadow-xl px-6 sm:px-8 py-8 space-y-6">
@@ -281,7 +305,54 @@ const CreatePatient = () => {
         </div>
       </Card>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      {formSubmitted ? (
+        <Card className="rounded-2xl bg-white shadow-md ring-1 ring-slate-100/70 px-6 py-8 space-y-6">
+          {successMessage && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-6">
+              <div className="flex items-center justify-center flex-col gap-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-16 w-16 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-semibold text-green-800 mb-2">{successMessage}</p>
+                  <p className="text-sm text-green-600">The patient record has been successfully created.</p>
+                </div>
+                <button
+                  onClick={handleCreateAnother}
+                  className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold px-6 py-3 rounded-full border border-green-200 bg-green-500/90 hover:bg-green-500 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-300 mt-4"
+                >
+                  Create Another Patient
+                </button>
+              </div>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-6">
+              <div className="flex items-center justify-center flex-col gap-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-16 w-16 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-semibold text-red-800 mb-2">Failed to create patient</p>
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+                <button
+                  onClick={handleCreateAnother}
+                  className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold px-6 py-3 rounded-full border border-red-200 bg-red-500/90 hover:bg-red-500 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 mt-4"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          )}
+        </Card>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-8">
         {/* Success Message */}
         {successMessage && (
           <div className="rounded-lg bg-green-50 border border-green-200 p-4">
@@ -468,6 +539,7 @@ const CreatePatient = () => {
           </button>
         </div>
       </form>
+      )}
     </div>
   );
 };

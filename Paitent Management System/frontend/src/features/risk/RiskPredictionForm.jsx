@@ -228,6 +228,7 @@ function RiskPredictionForm() {
   return (
     <div className="w-full px-6 md:px-10 lg:px-14 py-10 space-y-10">
       <Card className="rounded-3xl bg-gradient-to-br from-white via-rose-50 to-rose-100 ring-1 ring-rose-100/70 shadow-xl p-6 sm:p-8 space-y-6">
+        <div className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
@@ -301,6 +302,7 @@ function RiskPredictionForm() {
               </button>
             </div>
           </div>
+        </div>
         </div>
       </Card>
 

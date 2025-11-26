@@ -195,26 +195,36 @@ const TherapyEffectivenessForm = () => {
       
       // Format dates for labels
       const formatDate = (dateStr) => {
-        if (!dateStr) return 'N/A';
+        if (!dateStr) return null;
         const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return null;
         return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
       };
       
       // Calculate forecast dates (90 days apart from third visit)
       const getForecastDate = (baseDate, monthsAhead) => {
-        if (!baseDate) return 'N/A';
+        if (!baseDate) return null;
         const date = new Date(baseDate);
+        if (isNaN(date.getTime())) return null;
         date.setMonth(date.getMonth() + monthsAhead);
         return formatDate(date);
       };
       
-      const labels = [
+      // Build labels array, filtering out nulls and providing fallback labels
+      const rawLabels = [
         formatDate(patient.first_visit_date),
         formatDate(patient.second_visit_date),
         formatDate(patient.third_visit_date),
         getForecastDate(patient.third_visit_date, 3),
         getForecastDate(patient.third_visit_date, 6)
       ];
+      
+      // Replace null values with placeholder labels
+      const labels = rawLabels.map((label, idx) => {
+        if (label) return label;
+        if (idx < 3) return `Visit ${idx + 1}`;
+        return `Forecast +${(idx - 2) * 3}mo`;
+      });
       
       pathlineChartInstanceRef.current = new Chart(pathlineChartRef.current, {
         type: 'line',
@@ -336,8 +346,8 @@ const TherapyEffectivenessForm = () => {
 
   return (
     <div className="w-full px-6 md:px-10 lg:px-14 py-10 space-y-10">
-      <div className="grid gap-4">
-        <div className="rounded-3xl bg-gradient-to-br from-white via-indigo-50 to-purple-100 ring-1 ring-indigo-100/70 shadow-xl px-6 sm:px-8 py-8 space-y-6">
+      <div className="rounded-3xl bg-gradient-to-br from-white via-indigo-50 to-purple-100 ring-1 ring-indigo-100/70 shadow-xl px-6 sm:px-8 py-8 space-y-6">
+        <div className="space-y-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
@@ -433,12 +443,6 @@ const TherapyEffectivenessForm = () => {
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 text-xs text-slate-600">
-            <RiskChip label="Complication" value={complicationRisk} />
-            <RiskChip label="Hypoglycemia" value={hypoRisk} />
-            <RiskChip label="Adherence" value={medAdherenceRisk} />
-          </div>
-
           {forecastHba1c.length > 0 && (
             <div className="rounded-2xl bg-white/80 border border-white/70 px-4 sm:px-6 py-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-700 mb-3 text-center">HbA1c Trend & Forecast</h3>
@@ -448,8 +452,9 @@ const TherapyEffectivenessForm = () => {
             </div>
           )}
         </div>
+      </div>
 
-        <div className="rounded-3xl bg-white shadow-md ring-1 ring-black/5 px-6 py-6 space-y-6">
+      <div className="rounded-3xl bg-white shadow-md ring-1 ring-black/5 px-6 py-6 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-700">Therapy summary</h3>
             <span className="text-xs text-slate-400">Powered by LLM insights</span>
@@ -493,7 +498,6 @@ const TherapyEffectivenessForm = () => {
             </div>
           )}
         </div>
-      </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <div className="rounded-2xl bg-white shadow-md ring-1 ring-black/5 px-6 py-6 space-y-5">

@@ -468,6 +468,36 @@ const TherapyDashboard = () => {
                         boxWidth: 10,
                       },
                     },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const label = context.label || '';
+                          const value = context.parsed || 0;
+                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                          
+                          return `${label}: ${value} (${percentage}%)`;
+                        },
+                        afterLabel: function(context) {
+                          const label = context.label || '';
+                          const criteria = {
+                            'Improving': 'HbA1c drop >1.0 OR FVG drop <-1.0',
+                            'Worsening': 'HbA1c drop <0 OR FVG rise >1.0',
+                            'Stable': 'Otherwise'
+                          };
+                          return criteria[label] || '';
+                        }
+                      },
+                      backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                      titleColor: '#f1f5f9',
+                      bodyColor: '#cbd5e1',
+                      borderColor: 'rgba(148, 163, 184, 0.2)',
+                      borderWidth: 1,
+                      padding: 12,
+                      displayColors: true,
+                      boxWidth: 8,
+                      boxHeight: 8,
+                    },
                   },
                   maintainAspectRatio: false,
                 }}
@@ -522,31 +552,31 @@ const TherapyDashboard = () => {
           </div>
         </Card>
 
-        <Card className="rounded-2xl bg-gradient-to-br from-white via-rose-50 to-rose-100 ring-1 ring-rose-100/70 shadow-md px-5 py-5 space-y-5">
+        <Card className="rounded-2xl bg-gradient-to-br from-white via-indigo-50 to-indigo-100 ring-1 ring-indigo-100/60 shadow-md px-5 py-5 space-y-5">
           <div className="flex items-start justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-500">Care focus</h3>
-            <span className="text-[11px] text-rose-400">{priorityPatients.length} priority</span>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Care focus</h3>
+            <span className="text-[11px] text-slate-400">{priorityPatients.length} priority</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-xs text-rose-700">
-            <div className="rounded-lg bg-white/70 border border-rose-100 px-3 py-2 shadow-sm">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-rose-400">Improving</p>
-              <p className="text-lg font-semibold text-rose-600">{improvingShare}%</p>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="rounded-lg bg-white/80 border border-indigo-100 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-500">Improving</p>
+              <p className="text-lg font-semibold text-emerald-700">{improvingShare}%</p>
             </div>
-            <div className="rounded-lg bg-white/70 border border-rose-100 px-3 py-2 shadow-sm">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-rose-400">Stable</p>
-              <p className="text-lg font-semibold text-rose-600">{stableShare}%</p>
+            <div className="rounded-lg bg-white/80 border border-indigo-100 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-amber-500">Stable</p>
+              <p className="text-lg font-semibold text-amber-700">{stableShare}%</p>
             </div>
-            <div className="rounded-lg bg-white/70 border border-rose-100 px-3 py-2 shadow-sm col-span-2">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-rose-400">Avg adherence</p>
-              <p className="text-lg font-semibold text-rose-600">{averageAdherence}%</p>
+            <div className="rounded-lg bg-white/80 border border-indigo-100 px-3 py-2 shadow-sm col-span-2">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-500">Avg adherence</p>
+              <p className="text-lg font-semibold text-indigo-700">{averageAdherence}%</p>
             </div>
           </div>
 
-          <div className="space-y-2 text-xs text-rose-700">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-500">Priority patients</p>
+          <div className="space-y-2 text-xs">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Priority patients</p>
             {priorityPatients.length === 0 ? (
-              <span className="text-[11px] text-rose-400">No patients flagged right now.</span>
+              <span className="text-[11px] text-slate-400">No patients flagged right now.</span>
             ) : (
               <ul className="space-y-2">
                 {priorityPatients.map((p) => (
@@ -571,39 +601,38 @@ const TherapyDashboard = () => {
         {visiblePatients.length === 0 ? (
           <div className="col-span-full text-center text-gray-500 py-10">No patients found.</div>
         ) : (
-          visiblePatients.map((p) => (
-            <Card key={p.id} className="space-y-4 hover:shadow-lg transition">
-              <div className="flex justify-between items-start gap-4">
-                <div>
-                  <Link to={`/therapy-effectiveness/${p.id}`} className="group">
-                    <h4 className="font-semibold text-slate-800 group-hover:text-sky-600 group-hover:underline">
-                      {p.name}
-                    </h4>
-                  </Link>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {p.age} y/o · {p.gender} · Regimen {p.insulin_regimen_type || '—'}
-                  </p>
-                </div>
-                <StatusBadge status={getPatientStatus(p)} />
-              </div>
+          visiblePatients.map((p) => {
+            const status = getPatientStatus(p);
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <MetricTile label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="emerald" />
-                <MetricTile label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="blue" />
-                <MetricTile label="DDS Δ" value={p.dds_trend_1_3 ?? '—'} tone="purple" />
-                <MetricTile label="eGFR" value={p.egfr3 || p.egfr1 || p.egfr ? `${Math.round(p.egfr3 || p.egfr1 || p.egfr)}` : '—'} tone="blue" />
-              </div>
+            return (
+              <Link key={p.id} to={`/therapy-effectiveness/${p.id}`} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
+                <Card className="space-y-4 border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02] hover:border-slate-300 cursor-pointer">
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <h4 className="font-semibold text-slate-800">
+                        {p.name}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {p.age} y/o · {p.gender} · Regimen {p.insulin_regimen_type || '—'}
+                      </p>
+                    </div>
+                    <StatusBadge status={status} />
+                  </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <p>Updated {new Date(p.updated_at).toLocaleDateString()}</p>
-                <div className="flex gap-2">
-                  <Link to={`/therapy-effectiveness/${p.id}`} className="text-sky-600 font-semibold hover:text-sky-500">
-                    View profile
-                  </Link>
-                </div>
-              </div>
-            </Card>
-          ))
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <MetricTile label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="emerald" />
+                    <MetricTile label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="blue" />
+                    <MetricTile label="DDS Δ" value={p.dds_trend_1_3 ?? '—'} tone="purple" />
+                    <MetricTile label="eGFR" value={p.egfr3 || p.egfr1 || p.egfr ? `${Math.round(p.egfr3 || p.egfr1 || p.egfr)}` : '—'} tone="blue" />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <p>Updated {new Date(p.updated_at).toLocaleDateString()}</p>
+                  </div>
+                </Card>
+              </Link>
+            );
+          })
         )}
       </div>
 

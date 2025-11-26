@@ -183,6 +183,7 @@ function Chatbot() {
                 query: trimmedQuery,
             };
 
+            // Add optional context if provided
             if (trimmedContext) {
                 payload.context = trimmedContext;
             }
@@ -203,7 +204,6 @@ function Chatbot() {
                 {
                     text: cleanedText,
                     user: false,
-                    contextSummary: trimmedContext || undefined,
                 },
             ]);
         } catch (error) {
@@ -211,6 +211,7 @@ function Chatbot() {
             setMessages(prev => [...prev, { text: "⚠️ AI is currently unavailable.", user: false }]);
         } finally {
             setLoading(false);
+            // Clear context after sending
             if (trimmedContext) {
                 setPatientContext('');
             }
@@ -298,22 +299,22 @@ function Chatbot() {
                         ))}
                     </div>
                     <div className="mt-6 space-y-2">
-                        <p className="text-xs uppercase tracking-[0.2em] text-purple-300">Patient context</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-purple-300">Additional Context (Optional)</p>
                         <textarea
                             value={patientContext}
                             onChange={(e) => setPatientContext(e.target.value)}
                             className="w-full resize-none rounded-2xl border border-purple-100 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-200 placeholder-slate-400"
                             rows={4}
-                            placeholder="Optional: share symptoms, goals, or lifestyle notes to tailor responses"
+                            placeholder="e.g., 'I've been feeling dizzy after meals' or 'Started exercising 3x/week'"
                         />
                         <p className="text-[11px] text-purple-300">
-                            We’ll use this context to personalise your next AI response.
+                            💡 The AI will specifically reference this context and your health metrics in its response.
                         </p>
                     </div>
                 </Card>
             </div>
 
-            <Card className="rounded-3xl bg-gradient-to-br from-blue-50 via-white to-blue-50 shadow-md ring-1 ring-blue-100/70 px-6 py-6 space-y-3">
+            <Card className="rounded-3xl bg-gradient-to-br from-blue-50 via-white to-blue-50 shadow-md ring-1 ring-blue-100/70 px-6 py-6 space-y-4">
                 <div className="flex items-center gap-3">
                     <Sparkles size={18} className="text-blue-400" />
                     <div>
@@ -323,8 +324,31 @@ function Chatbot() {
                         </p>
                     </div>
                 </div>
-                <div className="text-xs text-blue-400">
-                    Responses are private, for educational purposes, and do not replace medical advice.
+                
+                <div className="space-y-3 text-sm text-slate-600">
+                    <div>
+                        <h4 className="font-semibold text-slate-800 mb-1">Powered by Langflow</h4>
+                        <p className="text-xs leading-relaxed">
+                            Our AI assistant is built using <strong>Langflow</strong>, a visual framework for creating AI workflows. 
+                            This enables us to combine multiple AI models, retrieval-augmented generation (RAG) with medical literature, 
+                            and your personal health data to provide contextual, evidence-based responses tailored to your diabetes management journey.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h4 className="font-semibold text-slate-800 mb-1">How it works</h4>
+                        <ul className="text-xs space-y-1 list-disc list-inside text-slate-600">
+                            <li><strong>Retrieval-Augmented Generation (RAG):</strong> Queries medical knowledge bases for evidence-based information</li>
+                            <li><strong>Personalized Context:</strong> Analyzes your HbA1c, FVG, DDS trends, and clinical history</li>
+                            <li><strong>Large Language Models:</strong> Generates natural, conversational responses using advanced AI</li>
+                            <li><strong>Workflow Orchestration:</strong> Langflow coordinates multiple AI components for accurate, relevant answers</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div className="text-xs text-blue-400 border-t border-blue-100 pt-3">
+                    <strong>Privacy & Disclaimer:</strong> Responses are private, for educational purposes, and do not replace professional medical advice. 
+                    Always consult your healthcare provider for medical decisions.
                 </div>
             </Card>
         </div>
@@ -363,7 +387,14 @@ const MessageBubble = ({ message, patient, priorMessage }) => {
                     />
                 </div>
             ) : (
-                <p className="text-sm leading-relaxed">{message.text}</p>
+                <div className="space-y-2">
+                    <p className="text-sm leading-relaxed">{message.text}</p>
+                    {message.context && (
+                        <div className="mt-2 pt-2 border-t border-white/30">
+                            <p className="text-xs opacity-90 italic">📝 With context: "{message.context}"</p>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );

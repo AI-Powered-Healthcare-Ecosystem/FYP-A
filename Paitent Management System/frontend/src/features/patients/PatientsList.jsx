@@ -162,11 +162,11 @@ const PatientsList = ({ hideHeader = false }) => {
     setCurrentPage(1);
   }, [statusFilter, insulinFilter, genderFilter, pageSize, searchTerm]);
 
-  const formatTrend = (val) => {
+  const formatTrend = (val, decimals = 0) => {
     if (val == null) return '-';
     const num = parseFloat(val);
     const color = num > 0 ? 'text-red-500' : num < 0 ? 'text-green-600' : 'text-yellow-500';
-    return <span className={`font-semibold ${color}`}>{num}</span>;
+    return <span className={`font-semibold ${color}`}>{num.toFixed(decimals)}</span>;
   };
 
   const formatGap = (days) => (days != null ? `${Math.round(days)} days` : '-');
@@ -191,16 +191,13 @@ const PatientsList = ({ hideHeader = false }) => {
   };
 
   const insulinColors = {
-    Basal: 'bg-indigo-100 text-indigo-700',
-    Bolus: 'bg-purple-100 text-purple-700',
-    PBD: 'bg-blue-100 text-blue-700',
     BB: 'bg-teal-100 text-teal-700',
     PTDS: 'bg-yellow-100 text-yellow-700',
-    None: 'bg-gray-100 text-gray-500',
+    PBD: 'bg-blue-100 text-blue-700',
   };
 
   const statusOptions = ['All Status', 'Improving', 'Stable', 'Worsening'];
-  const insulinOptions = ['All Insulin Types', 'Basal', 'Bolus', 'PBD', 'BB', 'PTDS', 'None'];
+  const insulinOptions = ['All Insulin Types', 'BB', 'PTDS', 'PBD'];
   const genderOptions = ['All Genders', 'Male', 'Female'];
   const pageSizeOptions = [10, 25, 50, 100];
 
@@ -393,58 +390,63 @@ const PatientsList = ({ hideHeader = false }) => {
         <SummaryCard label="Worsening" value={summaryLoading ? '...' : summary.worsening} type="worsening" />
       </div>
 
-      <Card className="overflow-hidden p-0 rounded-xl ring-1 ring-black/5">
+      <Card className="overflow-hidden p-0 rounded-2xl ring-1 ring-slate-200 shadow-lg">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-left text-gray-700">
-            <thead className="sticky top-0 z-10 bg-gray-50/90 backdrop-blur text-xs uppercase font-semibold text-gray-600 border-b">
+          <table className="min-w-full text-sm text-left text-gray-700" style={{borderCollapse: 'collapse'}}>
+            <thead className="sticky top-0 z-10 bg-gradient-to-r from-slate-50 to-slate-100 backdrop-blur text-xs uppercase font-semibold text-slate-700 border-b-2 border-slate-300">
             <tr>
               <th className="px-4 py-2.5">
-                <button onClick={() => toggleSort('name')} className="inline-flex items-center gap-1 hover:text-gray-900">Name {sortBy==='name' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
+                <button onClick={() => toggleSort('name')} className="inline-flex items-center gap-1 hover:text-gray-900">NAME {sortBy==='name' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
               </th>
               <th className="px-4 py-2.5">
-                <button onClick={() => toggleSort('age')} className="inline-flex items-center gap-1 hover:text-gray-900">Age {sortBy==='age' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
+                <button onClick={() => toggleSort('status')} className="inline-flex items-center gap-1 hover:text-gray-900">STATUS {sortBy==='status' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
               </th>
               <th className="px-4 py-2.5">
-                <button onClick={() => toggleSort('gender')} className="inline-flex items-center gap-1 hover:text-gray-900">Gender {sortBy==='gender' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
+                <button onClick={() => toggleSort('age')} className="inline-flex items-center gap-1 hover:text-gray-900">AGE {sortBy==='age' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
               </th>
-              <th className="px-4 py-2.5">Ethnicity</th>
-              <th className="px-4 py-2.5">Insulin</th>
-              <th className="px-4 py-2.5">FVG</th>
-              <th className="px-4 py-2.5">FVG 1st</th>
-              <th className="px-4 py-2.5">FVG 2nd</th>
-              <th className="px-4 py-2.5">FVG 3rd</th>
-              <th className="px-4 py-2.5">HbA1c 1st</th>
-              <th className="px-4 py-2.5">HbA1c 2nd</th>
-              <th className="px-4 py-2.5">HbA1c 3rd</th>
-              <th className="px-4 py-2.5">Avg FVG</th>
-              <th className="px-4 py-2.5">FVG Δ</th>
-              <th className="px-4 py-2.5">HbA1c Δ</th>
-              <th className="px-4 py-2.5">HbA1c Δ (2→3)</th>
-              <th className="px-4 py-2.5">Drop/Day</th>
-              <th className="px-4 py-2.5">Weight 1st</th>
-              <th className="px-4 py-2.5">Weight 2nd</th>
-              <th className="px-4 py-2.5">Weight 3rd</th>
-              <th className="px-4 py-2.5">BMI 1st</th>
-              <th className="px-4 py-2.5">BMI 3rd</th>
-              <th className="px-4 py-2.5">SBP</th>
-              <th className="px-4 py-2.5">DBP</th>
-              <th className="px-4 py-2.5">eGFR</th>
-              <th className="px-4 py-2.5">eGFR 1st</th>
-              <th className="px-4 py-2.5">eGFR 3rd</th>
-              <th className="px-4 py-2.5">UACR 1st</th>
-              <th className="px-4 py-2.5">UACR 3rd</th>
-              <th className="px-4 py-2.5">DDS Δ</th>
-              <th className="px-4 py-2.5">BG Mon.</th>
               <th className="px-4 py-2.5">
-                <button onClick={() => toggleSort('status')} className="inline-flex items-center gap-1 hover:text-gray-900">Status {sortBy==='status' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
+                <button onClick={() => toggleSort('gender')} className="inline-flex items-center gap-1 hover:text-gray-900">GENDER {sortBy==='gender' && (sortDir==='asc' ? <ChevronUp size={14}/> : <ChevronDown size={14}/> )}</button>
               </th>
+              <th className="px-4 py-2.5 border-r border-slate-200">Ethnicity</th>
+              <th className="px-4 py-2.5 border-r border-slate-200">Insulin</th>
+              {/* HbA1c Group - Rose */}
+              <th className="px-4 py-2.5 bg-rose-50 border-r border-slate-200">HbA1c 1st</th>
+              <th className="px-4 py-2.5 bg-rose-50 border-r border-slate-200">HbA1c 2nd</th>
+              <th className="px-4 py-2.5 bg-rose-50 border-r border-slate-200">HbA1c 3rd</th>
+              <th className="px-4 py-2.5 bg-rose-50 border-r border-slate-200">HbA1c Δ</th>
+              <th className="px-4 py-2.5 bg-rose-50 border-r border-slate-200">HbA1c Δ (2→3)</th>
+              <th className="px-4 py-2.5 bg-rose-50 border-r border-slate-200">Drop/Day</th>
+              {/* FVG Group - Blue */}
+              <th className="px-4 py-2.5 bg-blue-50 border-r border-slate-200">FVG 1st</th>
+              <th className="px-4 py-2.5 bg-blue-50 border-r border-slate-200">FVG 2nd</th>
+              <th className="px-4 py-2.5 bg-blue-50 border-r border-slate-200">FVG 3rd</th>
+              <th className="px-4 py-2.5 bg-blue-50 border-r border-slate-200">Avg FVG</th>
+              <th className="px-4 py-2.5 bg-blue-50 border-r border-slate-200">FVG Δ</th>
+              {/* Weight/BMI Group - Amber */}
+              <th className="px-4 py-2.5 bg-amber-50 border-r border-slate-200">Weight 1st</th>
+              <th className="px-4 py-2.5 bg-amber-50 border-r border-slate-200">Weight 2nd</th>
+              <th className="px-4 py-2.5 bg-amber-50 border-r border-slate-200">Weight 3rd</th>
+              <th className="px-4 py-2.5 bg-amber-50 border-r border-slate-200">BMI 1st</th>
+              <th className="px-4 py-2.5 bg-amber-50 border-r border-slate-200">BMI 3rd</th>
+              {/* Blood Pressure */}
+              <th className="px-4 py-2.5 border-r border-slate-200">SBP</th>
+              <th className="px-4 py-2.5 border-r border-slate-200">DBP</th>
+              {/* eGFR Group - Purple */}
+              <th className="px-4 py-2.5 bg-purple-50 border-r border-slate-200">eGFR 1st</th>
+              <th className="px-4 py-2.5 bg-purple-50 border-r border-slate-200">eGFR 3rd</th>
+              {/* UACR Group - Teal */}
+              <th className="px-4 py-2.5 bg-teal-50 border-r border-slate-200">UACR 1st</th>
+              <th className="px-4 py-2.5 bg-teal-50 border-r border-slate-200">UACR 3rd</th>
+              {/* Other */}
+              <th className="px-4 py-2.5 border-r border-slate-200">DDS Δ</th>
+              <th className="px-4 py-2.5 border-r border-slate-200">SMBG</th>
               <th className="px-4 py-2.5 text-center">Actions</th>
             </tr>
             </thead>
             <tbody>
               {filteredPatients.length === 0 ? (
                 <tr>
-                  <td colSpan="33" className="text-center py-6 text-gray-500">
+                  <td colSpan="28" className="text-center py-6 text-gray-500">
                     No matching patients found.
                   </td>
                 </tr>
@@ -456,50 +458,53 @@ const PatientsList = ({ hideHeader = false }) => {
                         {p.name}
                       </Link>
                     </td>
+                    <td className="px-4 py-2.5">
+                      <StatusBadge status={getStatusTag(p)} />
+                    </td>
                     <td className="px-4 py-2.5">{p.age}</td>
                     <td className="px-4 py-2.5">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${p.gender === 'Male' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'}`}>
                         {p.gender}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5">{p.ethnicity || '-'}</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2.5 border-r border-slate-200">{p.ethnicity || '-'}</td>
+                    <td className="px-4 py-2.5 border-r border-slate-200">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${insulinColors[p.insulin_regimen_type] || 'bg-gray-100 text-gray-500'}`}>
                         {p.insulin_regimen_type || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5">{p.fvg ?? '-'}</td>
-                    <td className="px-4 py-2.5">{p.fvg_1 ? Number(p.fvg_1).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.fvg_2 ? Number(p.fvg_2).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.fvg_3 ? Number(p.fvg_3).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.hba1c_1st_visit ? Number(p.hba1c_1st_visit).toFixed(2) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.hba1c_2nd_visit ? Number(p.hba1c_2nd_visit).toFixed(2) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.hba1c_3rd_visit ? Number(p.hba1c_3rd_visit).toFixed(2) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.avg_fvg_1_2 ?? '-'}</td>
-                    <td className="px-4 py-2.5">{formatTrend(p.fvg_delta_1_2)}</td>
-                    <td className="px-4 py-2.5">{formatTrend(p.reduction_a)}</td>
-                    <td className="px-4 py-2.5">{formatTrend(p.reduction_a_2_3)}</td>
-                    <td className="px-4 py-2.5">{formatTrend(p.reduction_a_per_day)}</td>
-                    <td className="px-4 py-2.5">{p.weight1 ? Number(p.weight1).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.weight2 ? Number(p.weight2).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.weight3 ? Number(p.weight3).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.bmi1 ? Number(p.bmi1).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.bmi3 ? Number(p.bmi3).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.sbp ? Math.round(p.sbp) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.dbp ? Math.round(p.dbp) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.egfr ? Number(p.egfr).toFixed(0) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.egfr1 ? Number(p.egfr1).toFixed(0) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.egfr3 ? Number(p.egfr3).toFixed(0) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.uacr1 ? Number(p.uacr1).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{p.uacr3 ? Number(p.uacr3).toFixed(1) : '-'}</td>
-                    <td className="px-4 py-2.5">{formatTrend(p.dds_trend_1_3)}</td>
-                    <td className="px-4 py-2.5" title={p.freq_smbg ? `${p.freq_smbg} checks/month (~${(p.freq_smbg / 30).toFixed(1)}/day)` : 'Not recorded'}>
+                    {/* HbA1c Group - Rose */}
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_1st_visit ? Number(p.hba1c_1st_visit).toFixed(2) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_2nd_visit ? Number(p.hba1c_2nd_visit).toFixed(2) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_3rd_visit ? Number(p.hba1c_3rd_visit).toFixed(2) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatTrend(p.reduction_a)}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatTrend(p.reduction_a_2_3)}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatTrend(p.reduction_a_per_day, 2)}</td>
+                    {/* FVG Group - Blue */}
+                    <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.fvg_1 ? Number(p.fvg_1).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.fvg_2 ? Number(p.fvg_2).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.fvg_3 ? Number(p.fvg_3).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.avg_fvg_1_2 ?? '-'}</td>
+                    <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{formatTrend(p.fvg_delta_1_2)}</td>
+                    {/* Weight/BMI Group - Amber */}
+                    <td className="px-4 py-2.5 bg-amber-50/50 border-r border-slate-200">{p.weight1 ? Number(p.weight1).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-amber-50/50 border-r border-slate-200">{p.weight2 ? Number(p.weight2).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-amber-50/50 border-r border-slate-200">{p.weight3 ? Number(p.weight3).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-amber-50/50 border-r border-slate-200">{p.bmi1 ? Number(p.bmi1).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-amber-50/50 border-r border-slate-200">{p.bmi3 ? Number(p.bmi3).toFixed(1) : '-'}</td>
+                    {/* Blood Pressure */}
+                    <td className="px-4 py-2.5 border-r border-slate-200">{p.sbp ? Math.round(p.sbp) : '-'}</td>
+                    <td className="px-4 py-2.5 border-r border-slate-200">{p.dbp ? Math.round(p.dbp) : '-'}</td>
+                    {/* eGFR Group - Purple */}
+                    <td className="px-4 py-2.5 bg-purple-50/50 border-r border-slate-200">{p.egfr1 ? Number(p.egfr1).toFixed(0) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-purple-50/50 border-r border-slate-200">{p.egfr3 ? Number(p.egfr3).toFixed(0) : '-'}</td>
+                    {/* UACR Group - Teal */}
+                    <td className="px-4 py-2.5 bg-teal-50/50 border-r border-slate-200">{p.uacr1 ? Number(p.uacr1).toFixed(1) : '-'}</td>
+                    <td className="px-4 py-2.5 bg-teal-50/50 border-r border-slate-200">{p.uacr3 ? Number(p.uacr3).toFixed(1) : '-'}</td>
+                    {/* Other */}
+                    <td className="px-4 py-2.5 border-r border-slate-200">{formatTrend(p.dds_trend_1_3)}</td>
+                    <td className="px-4 py-2.5 border-r border-slate-200" title={p.freq_smbg ? `${p.freq_smbg} checks/month (~${(p.freq_smbg / 30).toFixed(1)}/day)` : 'Not recorded'}>
                       {p.freq_smbg ? `${p.freq_smbg}` : '-'}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getStatusTag(p) === 'Improving' ? 'bg-green-100 text-green-700' : getStatusTag(p) === 'Worsening' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                        {getStatusTag(p)}
-                      </span>
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap items-center justify-center gap-2">
@@ -563,6 +568,69 @@ const PatientsList = ({ hideHeader = false }) => {
         onClose={() => setAssignOpen(false)}
         onAssigned={async () => { setAssignOpen(false); await refreshCurrentPage(); }}
       />
+    </div>
+  );
+};
+
+const StatusBadge = ({ status }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const getStatusColor = () => {
+    switch (status) {
+      case 'Improving':
+        return 'bg-green-100 text-green-700';
+      case 'Worsening':
+        return 'bg-red-100 text-red-600';
+      case 'Needs Review':
+        return 'bg-orange-100 text-orange-600';
+      default:
+        return 'bg-yellow-100 text-yellow-600';
+    }
+  };
+
+  const tooltipContent = {
+    title: 'Status Criteria',
+    items: [
+      { level: 'Improving', condition: 'HbA1c drop >1.0 OR FVG drop <-1.0' },
+      { level: 'Worsening', condition: 'HbA1c drop <0 OR FVG rise >1.0' },
+      { level: 'Needs Review', condition: 'DDS trend >1' },
+      { level: 'Stable', condition: 'Otherwise' }
+    ]
+  };
+
+  return (
+    <div className="relative inline-block">
+      <span 
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium cursor-help ${getStatusColor()}`}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        {status}
+      </span>
+      
+      {/* Custom Tooltip */}
+      {showTooltip && (
+        <div className="absolute z-[9999] left-full top-1/2 transform -translate-y-1/2 ml-2 w-72 pointer-events-none">
+          <div className="bg-slate-800 text-white rounded-lg shadow-xl p-3 text-xs">
+            <div className="font-semibold text-sm mb-2 text-slate-100">{tooltipContent.title}</div>
+            <div className="space-y-1.5">
+              {tooltipContent.items.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="text-emerald-400">•</span>
+                  <div>
+                    <span className="font-medium text-slate-200">{item.level}:</span>
+                    <span className="text-slate-300 ml-1">{item.condition}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Arrow pointing left */}
+            <div className="absolute right-full top-1/2 transform -translate-y-1/2 mr-px">
+              <div className="border-4 border-transparent border-r-slate-800"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

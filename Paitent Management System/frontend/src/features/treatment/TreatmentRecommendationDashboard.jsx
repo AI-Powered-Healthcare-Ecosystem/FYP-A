@@ -295,125 +295,137 @@ const TreatmentRecommendationDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4">
-          <Card className="rounded-2xl bg-gradient-to-br from-white via-emerald-50 to-emerald-100 ring-1 ring-emerald-100/60 shadow-md px-4 py-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Regimen mix</h3>
-              <span className="text-[11px] text-slate-400">Top {topRegimens.length}</span>
-            </div>
-            <div className="flex flex-col gap-2 text-xs text-slate-600">
-              {topRegimens.length === 0 ? (
-                <span className="text-[11px] text-slate-400">No regimen data available.</span>
-              ) : (
-                topRegimens.map(([name, count]) => (
-                  <div key={name} className="flex items-center justify-between rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                    <span className="font-medium">{name}</span>
-                    <span className="text-sm font-semibold text-slate-800">{count}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
-
-          <Card className="rounded-2xl bg-gradient-to-br from-white via-indigo-50 to-indigo-100 ring-1 ring-indigo-100/60 shadow-md px-4 py-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Report activity</h3>
-              <span className="text-[11px] text-slate-400">{reportPatients.length} generated</span>
-            </div>
-            <div className="flex flex-col gap-2 text-xs text-slate-600">
-              {reportPatients.length === 0 ? (
-                <span className="text-[11px] text-slate-400">No AI reports generated yet.</span>
-              ) : (
-                reportPatients.slice(0, 3).map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-indigo-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                    <span className="font-medium">{p.name}</span>
-                    <span className="text-[11px] text-slate-400">{p.updated ? new Date(p.updated).toLocaleDateString() : '—'}</span>
-                  </div>
-                ))
-              )}
-            </div>
-            {reportPatients.length > 3 && (
-              <p className="text-[11px] text-slate-400">+{reportPatients.length - 3} more reports in history</p>
-            )}
-          </Card>
-
-          {/* HbA1c targets */}
-          <Card className="rounded-2xl bg-gradient-to-br from-white via-amber-50 to-amber-100 ring-1 ring-amber-100/70 shadow-md px-4 py-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-600">HbA1c targets</h3>
-              <span className="text-[11px] text-amber-500">≤ 7.0%</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs text-amber-700">
-              <div className="rounded-lg border border-amber-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-amber-400">At target</p>
-                <p className="text-lg font-semibold text-amber-700">{atTarget.length}</p>
-              </div>
-              <div className="rounded-lg border border-amber-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-amber-400">Total</p>
-                <p className="text-lg font-semibold text-amber-700">{filteredCount}</p>
-              </div>
-              <div className="rounded-lg border border-amber-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-amber-400">Rate</p>
-                <p className="text-lg font-semibold text-amber-700">{atTargetPct !== null ? `${atTargetPct}%` : '—'}</p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Therapy response bands */}
-          <Card className="rounded-2xl bg-gradient-to-br from-white via-emerald-50 to-emerald-100 ring-1 ring-emerald-100/70 shadow-md px-4 py-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-600">Therapy response</h3>
-              <span className="text-[11px] text-emerald-500">Bands</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs text-emerald-700">
-              <div className="rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-400">Improving</p>
-                <p className="text-lg font-semibold text-emerald-700">{responseBuckets.Improving}</p>
-              </div>
-              <div className="rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-400">Stable</p>
-                <p className="text-lg font-semibold text-emerald-700">{responseBuckets.Stable}</p>
-              </div>
-              <div className="rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-400">Worsening</p>
-                <p className="text-lg font-semibold text-emerald-700">{responseBuckets.Worsening}</p>
-              </div>
-            </div>
-            {worseningList.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {worseningList.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-emerald-100 bg-white/80 px-2.5 py-1.5 shadow-sm text-xs">
-                    <span className="font-medium text-emerald-700">{p.name}</span>
-                    <Link to={`/treatment-recommendation/${p.id}`} className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700">Open</Link>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <Card className="rounded-2xl bg-gradient-to-br from-white via-rose-50 to-rose-100 ring-1 ring-rose-100/70 shadow-md px-5 py-5 space-y-4">
+      <div className="grid gap-4 xl:grid-cols-3">
+        {/* Treatment Outcomes */}
+        <Card className="rounded-2xl bg-gradient-to-br from-white via-emerald-50 to-green-100 ring-1 ring-emerald-100/60 shadow-md px-5 py-5 space-y-5">
           <div className="flex items-start justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-500">At‑risk follow‑up</h3>
-            <span className="text-[11px] text-rose-400">Rising DDS ∧ no upcoming appt (14d)</span>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Treatment outcomes</h3>
+            <span className="text-[11px] text-slate-400">Last 90 days</span>
           </div>
-          <div className="grid gap-3 text-xs text-rose-700">
-            <AtRiskList patients={filtered} appts={appts} />
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="rounded-lg bg-white/80 border border-emerald-100 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-500">Improving</p>
+              <p className="text-lg font-semibold text-emerald-700">{responseBuckets.Improving}</p>
+            </div>
+            <div className="rounded-lg bg-white/80 border border-amber-100 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-amber-500">Stable</p>
+              <p className="text-lg font-semibold text-amber-700">{responseBuckets.Stable}</p>
+            </div>
+            <div className="rounded-lg bg-white/80 border border-rose-100 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-rose-500">Worsening</p>
+              <p className="text-lg font-semibold text-rose-700">{responseBuckets.Worsening}</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Top performers</p>
+            {filtered.filter((p) => bucketOf(p) === 'Improving').length > 0 ? (
+              <ul className="space-y-2">
+                {filtered.filter((p) => bucketOf(p) === 'Improving').slice(0, 6).map((p) => (
+                  <li key={p.id} className="flex items-center justify-between rounded-lg bg-white border border-emerald-200 px-3 py-2 shadow-sm">
+                    <span className="text-sm text-slate-700">{p.name}</span>
+                    <span className="text-[11px] rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 border border-emerald-100">HbA1c ↓{(p.reduction_a ?? 0).toFixed(1)}%</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-xs text-slate-400">No improving patients yet.</span>
+            )}
+          </div>
+        </Card>
+
+        {/* Clinical Targets */}
+        <Card className="rounded-2xl bg-gradient-to-br from-white via-emerald-50 to-green-100 ring-1 ring-emerald-100/60 shadow-md px-5 py-5 space-y-5">
+          <div className="flex items-start justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Clinical targets</h3>
+            <span className="text-[11px] text-slate-400">{filteredCount} patients</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="rounded-lg bg-white/80 border border-emerald-100 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-500">HbA1c &lt;7%</p>
+              <p className="text-lg font-semibold text-emerald-700">{atTarget.length}</p>
+              <p className="text-[10px] text-emerald-500 mt-1">{atTargetPct}% at goal</p>
+            </div>
+            <div className="rounded-lg bg-white/80 border border-blue-100 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-blue-500">Weight mgmt</p>
+              <p className="text-lg font-semibold text-blue-700">{filtered.filter(p => (Number(p.bmi1) || 0) < 25).length}</p>
+              <p className="text-[10px] text-blue-500 mt-1">{filteredCount > 0 ? Math.round((filtered.filter(p => (Number(p.bmi1) || 0) < 25).length / filteredCount) * 100) : 0}% healthy BMI</p>
+            </div>
+            <div className="rounded-lg bg-white/80 border border-indigo-100 px-3 py-2 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-500">Kidney health</p>
+              <p className="text-lg font-semibold text-indigo-700">{filtered.filter(p => (Number(p.egfr) || 0) >= 60).length}</p>
+              <p className="text-[10px] text-indigo-500 mt-1">{filteredCount > 0 ? Math.round((filtered.filter(p => (Number(p.egfr) || 0) >= 60).length / filteredCount) * 100) : 0}% eGFR ≥60</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Best controlled patients</p>
+            {filtered.filter(p => latestHba1c(p) > 0).length > 0 ? (
+              <ul className="space-y-2">
+                {filtered
+                  .filter(p => latestHba1c(p) > 0)
+                  .sort((a, b) => (latestHba1c(a) || Infinity) - (latestHba1c(b) || Infinity))
+                  .slice(0, 6)
+                  .map((p) => {
+                    const hba1c = latestHba1c(p);
+                    const isAtGoal = hba1c <= 7.0;
+                    return (
+                      <li key={p.id} className={`flex items-center justify-between rounded-lg bg-white px-3 py-2 shadow-sm border ${isAtGoal ? 'border-emerald-200' : 'border-blue-200'}`}>
+                        <span className="text-sm text-slate-700">{p.name}</span>
+                        <span className={`text-[11px] rounded-full px-2 py-0.5 border ${isAtGoal ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                          {hba1c?.toFixed(1)}%{isAtGoal ? ' ✓' : ''}
+                        </span>
+                      </li>
+                    );
+                  })}
+              </ul>
+            ) : (
+              <span className="text-xs text-slate-400">No patient data available.</span>
+            )}
+          </div>
+        </Card>
+
+        <Card className="rounded-2xl bg-gradient-to-br from-white via-emerald-50 to-green-100 ring-1 ring-emerald-100/60 shadow-md px-5 py-5 space-y-5">
+          <div className="flex items-start justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Pending actions</h3>
+            <span className="text-[11px] text-slate-400">{reportPatients.length + pendingFollowupCount} items</span>
+          </div>
+          <div className="grid gap-4 text-xs">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-400 mb-2">Renal watch (eGFR &lt; 60)</p>
-              {lowEgfrPatients.length === 0 ? (
-                <span className="text-[11px] text-rose-400">No renal concerns detected.</span>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 mb-3">Recommendations awaiting review</p>
+              {reportPatients.length === 0 ? (
+                <span className="text-xs text-slate-400">No pending recommendations.</span>
               ) : (
-                <ul className="space-y-2">
-                  {lowEgfrPatients.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between rounded-lg bg-white/80 border border-rose-100 px-3 py-2 shadow-sm">
+                <ul className="space-y-2.5">
+                  {reportPatients.slice(0, 3).map((p) => (
+                    <li key={p.id} className="flex items-center justify-between rounded-lg bg-white border-2 border-purple-200 px-3.5 py-2.5 shadow-sm">
                       <div>
-                        <p className="text-sm font-semibold text-rose-700">{p.name}</p>
-                        <p className="text-[11px] text-rose-400">eGFR {p.egfr ?? '—'} mL/min</p>
+                        <p className="text-sm font-semibold text-purple-700">{p.name}</p>
+                        <p className="text-xs text-purple-400 mt-0.5">AI recommendation generated</p>
                       </div>
-                      <Link to={`/treatment-recommendation/${p.id}`} className="text-[11px] font-semibold text-rose-500 hover:text-rose-600">
-                        Open
+                      <Link to={`/treatment-recommendation/${p.id}`} className="text-xs font-semibold text-purple-500 hover:text-purple-600">
+                        Review
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {reportPatients.length > 3 && (
+                <p className="text-xs text-slate-400 mt-2">+{reportPatients.length - 3} more pending</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 mb-3">Follow-ups needed</p>
+              {pendingFollowupTop.length === 0 ? (
+                <span className="text-xs text-slate-400">All patients have upcoming appointments.</span>
+              ) : (
+                <ul className="space-y-2.5">
+                  {pendingFollowupTop.map((p) => (
+                    <li key={p.id} className="flex items-center justify-between rounded-lg bg-white border-2 border-amber-200 px-3.5 py-2.5 shadow-sm">
+                      <div>
+                        <p className="text-sm font-semibold text-amber-700">{p.name}</p>
+                        <p className="text-xs text-amber-400 mt-0.5">No appointment in next 14 days</p>
+                      </div>
+                      <Link to={`/appointments`} className="text-xs font-semibold text-amber-500 hover:text-amber-600">
+                        Schedule
                       </Link>
                     </li>
                   ))}
@@ -426,34 +438,29 @@ const TreatmentRecommendationDashboard = () => {
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {visiblePatients.map((p) => (
-          <Card
-            key={p.id}
-            className="space-y-4 rounded-2xl border border-indigo-100 bg-white/90 p-6 shadow-sm transition hover:shadow-lg"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800">{p.name}</h3>
-                <p className="text-xs text-slate-500 mt-1">{p.age} y/o · {p.gender} · Regimen {p.insulin_regimen_type || '—'}</p>
+          <Link key={p.id} to={`/treatment-recommendation/${p.id}`} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2">
+            <Card
+              className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02] hover:border-slate-300 cursor-pointer"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">{p.name}</h3>
+                  <p className="text-xs text-slate-500 mt-1">{p.age} y/o · {p.gender}</p>
+                </div>
               </div>
-              <span className="text-xs rounded-full bg-indigo-50 text-indigo-600 px-2 py-1 border border-indigo-100 font-medium">
-                {p.insulin_regimen_type || 'N/A'}
-              </span>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <Metric label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="emerald" />
-              <Metric label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="blue" />
-              <Metric label="DDS Δ" value={p.dds_trend_1_3 ?? '—'} tone="purple" />
-              <Metric label="eGFR" value={`${p.egfr ?? '—'} mL/min`} tone="blue" />
-            </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <Metric label="HbA1c Δ" value={`${(p.reduction_a ?? 0).toFixed(1)}%`} tone="emerald" />
+                <Metric label="FVG Δ" value={p.fvg_delta_1_2 ?? '—'} tone="blue" />
+                <Metric label="DDS Δ" value={p.dds_trend_1_3 ?? '—'} tone="purple" />
+                <Metric label="eGFR" value={`${p.egfr ?? '—'} mL/min`} tone="blue" />
+              </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <p>Updated {new Date(p.updated_at).toLocaleDateString()}</p>
-              <Link to={`/treatment-recommendation/${p.id}`} className="text-indigo-600 font-semibold hover:text-indigo-500">
-                View recommendation
-              </Link>
-            </div>
-          </Card>
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <p>Updated {new Date(p.updated_at).toLocaleDateString()}</p>
+              </div>
+            </Card>
+          </Link>
         ))}
       </div>
 

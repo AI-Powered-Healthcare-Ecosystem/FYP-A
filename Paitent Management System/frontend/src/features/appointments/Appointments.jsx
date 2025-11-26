@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, Clock, User, Search, ChevronLeft, ChevronRight, Users as UsersIcon, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Calendar, Clock, User, Search, ChevronLeft, ChevronRight, Users as UsersIcon, Pencil, Trash2, X, ChevronDown } from 'lucide-react';
 import CreateAppointmentModal from './CreateAppointmentModal';
 import Card from '@/components/Card.jsx';
 import { useUser } from '@/UserContext.jsx';
@@ -154,6 +154,19 @@ export default function Appointments() {
   const [deletingId, setDeletingId] = useState(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [clearingAll, setClearingAll] = useState(false);
+  const [clearAllAction, setClearAllAction] = useState('completed'); // 'completed', 'noshow', 'delete'
+  const [showClearDropdown, setShowClearDropdown] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showClearDropdown && !event.target.closest('.clear-all-dropdown')) {
+        setShowClearDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showClearDropdown]);
 
   const getTodayLocalStr = () => {
     const d = new Date();
@@ -301,14 +314,31 @@ export default function Appointments() {
     try {
       setClearingAll(true);
       const today = getTodayLocalStr();
-      const todays = appointments.filter((a) => a.date === today);
+      const todays = appointments.filter((a) => a.date === today && (a.status || 'Scheduled').toLowerCase() === 'scheduled');
       const ids = todays.map((a) => a.id).filter(Boolean);
-      await Promise.all(ids.map((id) => appointmentsApi.remove(id)));
-      setAppointments((prev) => {
-        const remaining = prev.filter((a) => a.date !== today);
-        recomputeLists(remaining);
-        return remaining;
-      });
+      
+      if (clearAllAction === 'delete') {
+        // Delete all appointments
+        await Promise.all(ids.map((id) => appointmentsApi.remove(id)));
+        setAppointments((prev) => {
+          const remaining = prev.filter((a) => a.date !== today || (a.status || 'Scheduled').toLowerCase() !== 'scheduled');
+          recomputeLists(remaining);
+          return remaining;
+        });
+      } else {
+        // Mark all as completed or no-show
+        const newStatus = clearAllAction === 'completed' ? 'Completed' : 'NoShow';
+        await Promise.all(ids.map((id) => appointmentsApi.update(id, { status: newStatus })));
+        setAppointments((prev) => {
+          const next = prev.map((a) => 
+            a.date === today && (a.status || 'Scheduled').toLowerCase() === 'scheduled'
+              ? { ...a, status: newStatus }
+              : a
+          );
+          recomputeLists(next);
+          return next;
+        });
+      }
       setConfirmClearAll(false);
     } catch (_) {
     } finally {
@@ -351,12 +381,44 @@ export default function Appointments() {
                 <Plus size={16} className="mr-2" /> Create Appointment
               </button>
               {todayAppointments.length > 0 && (
-                <button
-                  onClick={() => setConfirmClearAll(true)}
-                  className="inline-flex items-center justify-center h-10 px-3 rounded-md border border-rose-600 bg-white text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                >
-                  Clear all
-                </button>
+                <div className="relative clear-all-dropdown">
+                  <button
+                    onClick={() => { setClearAllAction('completed'); setConfirmClearAll(true); }}
+                    className="inline-flex items-center justify-center h-10 px-3 rounded-l-md border border-rose-600 bg-white text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                  >
+                    Mark all completed
+                  </button>
+                  <button
+                    onClick={() => setShowClearDropdown(!showClearDropdown)}
+                    className="inline-flex items-center justify-center h-10 px-2 rounded-r-md border border-l-0 border-rose-600 bg-white text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+                  {showClearDropdown && (
+                    <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() => { setClearAllAction('completed'); setConfirmClearAll(true); setShowClearDropdown(false); }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Mark all completed
+                        </button>
+                        <button
+                          onClick={() => { setClearAllAction('noshow'); setConfirmClearAll(true); setShowClearDropdown(false); }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Mark all no-show
+                        </button>
+                        <button
+                          onClick={() => { setClearAllAction('delete'); setConfirmClearAll(true); setShowClearDropdown(false); }}
+                          className="block w-full text-left px-4 py-2 text-sm text-rose-700 hover:bg-rose-50"
+                        >
+                          Delete all
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -553,11 +615,27 @@ export default function Appointments() {
       {confirmClearAll && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="w-11/12 max-w-sm rounded-xl bg-white shadow-xl ring-1 ring-slate-200 p-5">
-            <div className="mb-2 text-slate-800 font-semibold">Clear all appointments?</div>
-            <p className="text-sm text-slate-600 mb-4">This will permanently delete all listed appointments.</p>
+            <div className="mb-2 text-slate-800 font-semibold">
+              {clearAllAction === 'completed' && 'Mark all as completed?'}
+              {clearAllAction === 'noshow' && 'Mark all as no-show?'}
+              {clearAllAction === 'delete' && 'Delete all appointments?'}
+            </div>
+            <p className="text-sm text-slate-600 mb-4">
+              {clearAllAction === 'completed' && "This will mark all today's scheduled appointments as completed."}
+              {clearAllAction === 'noshow' && "This will mark all today's scheduled appointments as no-show."}
+              {clearAllAction === 'delete' && "This will permanently delete all today's scheduled appointments. This action cannot be undone."}
+            </p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setConfirmClearAll(false)} className="px-3 py-2 text-sm rounded-md border border-slate-200">Cancel</button>
-              <button onClick={handleClearAll} disabled={clearingAll} className="px-3 py-2 text-sm rounded-md bg-rose-600 text-white disabled:opacity-50">{clearingAll ? 'Clearing...' : 'Clear all'}</button>
+              <button 
+                onClick={handleClearAll} 
+                disabled={clearingAll} 
+                className={`px-3 py-2 text-sm rounded-md text-white disabled:opacity-50 ${
+                  clearAllAction === 'delete' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                {clearingAll ? 'Processing...' : clearAllAction === 'delete' ? 'Delete all' : 'Confirm'}
+              </button>
             </div>
           </div>
         </div>

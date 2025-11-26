@@ -380,6 +380,7 @@ class TreatmentRequest(BaseModel):
 class PatientChatRequest(BaseModel):
     patient: dict
     query: str
+    context: str | None = None
 
 class PatientData(BaseModel):
     # Core fields (nullable for missing data)
@@ -705,15 +706,46 @@ async def treatment_chat(request: Request):
 @app.post("/chatbot-patient-query")
 async def chatbot_patient_query(req: PatientChatRequest):
     try:
+        # Extract key patient metrics for emphasis
+        patient = req.patient
+        key_metrics = []
+        if patient.get('name'):
+            key_metrics.append(f"Patient: {patient['name']}")
+        if patient.get('hba1c_3rd_visit'):
+            key_metrics.append(f"Latest HbA1c: {patient['hba1c_3rd_visit']}%")
+        if patient.get('fvg_3'):
+            key_metrics.append(f"Latest FVG: {patient['fvg_3']} mmol/L")
+        if patient.get('dds_3'):
+            key_metrics.append(f"Latest DDS: {patient['dds_3']}")
+        if patient.get('insulin_regimen_type'):
+            key_metrics.append(f"Insulin Regimen: {patient['insulin_regimen_type']}")
+        
+        key_metrics_text = "\n".join([f"- {m}" for m in key_metrics])
+        
+        # Full patient data for reference
         patient_data = "\n".join([f"{k}: {v}" for k, v in req.patient.items()])
         
+        # Build enhanced prompt with optional context
+        context_section = ""
+        if req.context:
+            context_section = f"\n\nAdditional Patient Context (IMPORTANT - Address this specifically):\n{req.context}\n"
+        
         # Combine user query with patient context
-        full_input = f"""Patient Context:
-{patient_data}
+        full_input = f"""You are a diabetes care assistant. Provide personalized advice based on THIS SPECIFIC PATIENT's data.
 
+KEY PATIENT METRICS:
+{key_metrics_text}
+{context_section}
 User Question: {req.query}
 
-Please provide a concise, friendly clinical response based on the patient's data and medical knowledge."""
+Full Patient Data (for reference):
+{patient_data}
+
+Instructions:
+- Reference the patient's SPECIFIC metrics (HbA1c, FVG, DDS values) in your response
+- If additional context is provided, address it directly and mention relevant keywords from it
+- Provide personalized, actionable advice based on their current values
+- Be concise but specific to this patient's situation"""
 
         # Call Langflow API
         langflow_url = "https://host-langflow.delightfulflower-50ef0bcd.westus2.azurecontainerapps.io/api/v1/run/a9c7468e-417c-4289-80b4-0d6bec3d846d"
@@ -741,8 +773,9 @@ Please provide a concise, friendly clinical response based on the patient's data
         
         logging.info("="*80)
         logging.info(f"CHATBOT QUERY - Langflow API Call")
-        logging.info(f"Headers: {headers}")
-        logging.info(f"Payload keys: {list(payload.keys())}")
+        logging.info(f"Has additional context: {bool(req.context)}")
+        if req.context:
+            logging.info(f"Context preview: {req.context[:100]}...")
         logging.info(f"Session ID: {payload['session_id']}")
         logging.info("="*80)
         
