@@ -90,6 +90,29 @@ def save_latest_to_mysql(patient_id: int, value: float, label: str, model_versio
         # silent fail; caller will still return the computed value
         pass
 
+# ---- Activity Logger for FastAPI ----
+def log_activity(action: str, description: str, model_type: str = None, model_id: int = None, user_name: str = "System", user_role: str = "system", ip_address: str = None):
+    """Log activity to activity_logs table"""
+    try:
+        conn = _get_mysql_conn()
+        if conn is None:
+            return
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO activity_logs 
+            (user_id, user_name, user_role, action, model_type, model_id, description, ip_address, created_at, updated_at)
+            VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+            """,
+            (user_name, user_role, action, model_type, model_id, description, ip_address)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        logging.debug(f"Activity log error: {e}")
+        pass
+
 # Deprecated cache functions (no longer used)
 def cache_get(features: list[float], patient_id: int | None = None, model_version: str = "risk_v1"):
     """Deprecated: Now reads from MySQL via latest_get"""
@@ -383,6 +406,9 @@ class PatientChatRequest(BaseModel):
     context: str | None = None
 
 class PatientData(BaseModel):
+    # Patient identification (for logging)
+    patient_id: int | None = None
+    patient_name: str | None = None
     # Core fields (nullable for missing data)
     insulin_regimen: str
     hba1c1: float | None
@@ -611,6 +637,15 @@ async def treatment_recommendation(request: Request):
         # Extract response from Langflow output
         response_text = result.get("outputs", [{}])[0].get("outputs", [{}])[0].get("results", {}).get("message", {}).get("text", "No response generated")
 
+        # Log activity
+        patient_id = patient.get('id', None)
+        log_activity(
+            action="created",
+            description=f"Treatment recommendation for patient ID: {patient_id} - {question[:80]}",
+            model_type="TreatmentRecommendation",
+            model_id=patient_id
+        )
+
         return {
             "response": response_text,
             "context_used": "Langflow API with trained context"
@@ -693,6 +728,15 @@ async def treatment_chat(request: Request):
         
         # Extract response from Langflow output
         response_text = result.get("outputs", [{}])[0].get("outputs", [{}])[0].get("results", {}).get("message", {}).get("text", "No response generated")
+
+        # Log activity
+        patient_id = patient.get('id', None)
+        log_activity(
+            action="created",
+            description=f"Treatment chatbot for patient ID: {patient_id} - {question[:80]}",
+            model_type="TreatmentChatbot",
+            model_id=patient_id
+        )
 
         return {
             "response": response_text
@@ -920,6 +964,15 @@ Summarize the patient's trajectory and give a concise, clinically-relevant recom
                 summary = chat.choices[0].message.content.strip()
             except Exception as e:
                 summary = f"(LLM unavailable) {str(e)}"
+
+        # Log activity
+        patient_info = f" for patient ID: {data.patient_id}" if data.patient_id else ""
+        log_activity(
+            action="created",
+            description=f"Therapy effectiveness analysis{patient_info} (Score: {eff['score']:.2f}, Label: {eff['label']})",
+            model_type="TherapyEffectiveness",
+            model_id=data.patient_id
+        )
 
         # Match script output structure
         return {

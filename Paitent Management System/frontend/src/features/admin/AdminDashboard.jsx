@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users as UsersIcon, UserPlus, Settings, ShieldCheck } from 'lucide-react';
+import { Users as UsersIcon, UserPlus, Settings, ShieldCheck, FileText } from 'lucide-react';
 import Card from '@/components/Card.jsx';
 
 const StatPill = ({ label, value }) => (
@@ -77,6 +77,12 @@ const AdminDashboard = () => {
             className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-200 bg-white px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow hover:bg-emerald-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
           >
             <UserPlus size={16} /> Manage patients
+          </Link>
+          <Link
+            to="/admin/activity-logs"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-200 bg-cyan-100 px-5 py-2.5 text-sm font-semibold text-cyan-800 shadow hover:bg-cyan-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            <FileText size={16} /> Activity Logs
           </Link>
           <Link
             to="/admin/settings"

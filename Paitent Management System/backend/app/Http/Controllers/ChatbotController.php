@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use App\Helpers\ActivityLogger;
 
 class ChatbotController extends Controller
 {
@@ -25,6 +26,14 @@ class ChatbotController extends Controller
             ]);
 
             if ($response->successful()) {
+                // Log activity
+                ActivityLogger::log(
+                    'created',
+                    "Chatbot query: " . mb_substr($query, 0, 100),
+                    'Chatbot',
+                    null
+                );
+                
                 return response()->json([
                     'response' => $response->json()['response'] ?? '🤖 AI returned an empty response.'
                 ]);

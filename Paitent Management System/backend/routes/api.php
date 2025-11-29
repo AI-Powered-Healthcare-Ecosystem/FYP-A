@@ -10,47 +10,60 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\ActivityLogController;
 
+// Public routes (no authentication required)
 Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('web')->post('/login', [AuthController::class, 'login']);
 
-// Debug endpoint to check auth status
-Route::middleware('web')->get('/auth/check', function () {
-    return response()->json([
-        'authenticated' => auth()->check(),
-        'user' => auth()->user(),
-        'session_id' => session()->getId(),
-    ]);
+// Authenticated routes (requires login)
+Route::middleware(['web', 'auth:web'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Debug endpoint to check auth status
+    Route::get('/auth/check', function () {
+        return response()->json([
+            'authenticated' => auth()->check(),
+            'user' => auth()->user(),
+            'session_id' => session()->getId(),
+        ]);
+    });
+    
+    // Patient routes
+    Route::post('/patients', [PatientController::class, 'store']);
+    Route::put('/patients/{id}', [PatientController::class, 'update']);
+    Route::get('/patients/by-user/{userId}', [PatientController::class, 'getByUserId']);
+    Route::get('/patients', [PatientController::class, 'index']);
+    Route::get('/patients/{id}', [PatientController::class, 'show']);
+    Route::get('/patients/{id}/doctor', [PatientController::class, 'doctor']);
+    Route::post('/patients/{id}/risk', [PatientController::class, 'saveRisk']);
+    Route::post('/patients/{id}/apply-prediction-hba1c3', [PatientController::class, 'applyPredictionToHba1c3']);
+    
+    // Chatbot
+    Route::post('/chatbot/message', [ChatbotController::class, 'message']);
+    
+    // Account management
+    Route::delete('/account', [UserController::class, 'deleteSelf']);
+    
+    // Messaging
+    Route::get('/messages/conversations', [MessageController::class, 'conversations']);
+    Route::get('/messages/thread/{patientId}', [MessageController::class, 'thread']);
+    Route::post('/messages', [MessageController::class, 'send']);
+    Route::patch('/messages/{id}/read', [MessageController::class, 'markRead']);
+    Route::delete('/messages/thread/{patientId}', [MessageController::class, 'clearThread']);
+    
+    // Notifications
+    Route::get('/notifications', [UserNotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [UserNotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/{id}/read', [UserNotificationController::class, 'markRead']);
+    Route::patch('/notifications/mark-all-read', [UserNotificationController::class, 'markAllRead']);
 });
-Route::post('/patients', [PatientController::class, 'store']);
-Route::post('/chatbot/message', [ChatbotController::class, 'message']);
-Route::put('/patients/{id}', [PatientController::class, 'update']);
-Route::get('/patients/by-user/{userId}', [PatientController::class, 'getByUserId']);
-Route::get('/patients', [PatientController::class, 'index']);
-Route::get('/patients/{id}', [PatientController::class, 'show']);
-Route::get('/patients/{id}/doctor', [PatientController::class, 'doctor']);
-Route::post('/patients/{id}/risk', [PatientController::class, 'saveRisk']);
-Route::post('/patients/{id}/apply-prediction-hba1c3', [PatientController::class, 'applyPredictionToHba1c3']);
-Route::delete('/account', [UserController::class, 'deleteSelf']);
-
-// Messaging
-Route::get('/messages/conversations', [MessageController::class, 'conversations']);
-Route::get('/messages/thread/{patientId}', [MessageController::class, 'thread']);
-Route::post('/messages', [MessageController::class, 'send']);
-Route::patch('/messages/{id}/read', [MessageController::class, 'markRead']);
-Route::delete('/messages/thread/{patientId}', [MessageController::class, 'clearThread']);
-
-// Notifications
-Route::get('/notifications', [UserNotificationController::class, 'index']);
-Route::get('/notifications/unread-count', [UserNotificationController::class, 'unreadCount']);
-Route::patch('/notifications/{id}/read', [UserNotificationController::class, 'markRead']);
-Route::patch('/notifications/mark-all-read', [UserNotificationController::class, 'markAllRead']);
 
 Route::options('{any}', function () {
     return response()->json([], 200);
 })->where('any', '.*');
 
-Route::middleware(['web', 'auth:web'])->prefix('admin')->group(function () {
+Route::middleware(['web', 'auth:web', 'admin'])->prefix('admin')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/{id}', [UserController::class, 'show']);
     Route::get('/patients', [PatientController::class, 'index']);
@@ -58,6 +71,11 @@ Route::middleware(['web', 'auth:web'])->prefix('admin')->group(function () {
     Route::patch('/patients/{id}/assign-doctor', [PatientController::class, 'assignDoctor']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    
+    // Activity Logs
+    Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+    Route::get('/activity-logs/stats', [ActivityLogController::class, 'stats']);
+    Route::get('/activity-logs/{id}', [ActivityLogController::class, 'show']);
 });
 
 Route::middleware(['web', 'auth:web'])->group(function () {

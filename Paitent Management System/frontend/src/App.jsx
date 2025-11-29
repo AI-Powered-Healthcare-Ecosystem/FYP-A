@@ -22,6 +22,7 @@ import AdminPatients from './features/admin/AdminPatients.jsx';
 import AdminEditUser from './features/admin/AdminEditUser.jsx';
 import SystemAnalytics from './features/admin/SystemAnalytics.jsx';
 import ManageUsers from './features/admin/ManageUsers.jsx';
+import ActivityLog from './features/admin/ActivityLog.jsx';
 import MessagesThread from './features/messages/MessagesThread.jsx';
 import MessagesPage from './features/messages/MessagesPage.jsx';
 import DoctorSettings from './features/settings/DoctorSettings.jsx';
@@ -112,6 +113,7 @@ function App() {
                 <Route path="/admin/patients/create" element={<CreatePatient />} />
                 <Route path="/admin/analytics" element={<SystemAnalytics />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/admin/activity-logs" element={<ActivityLog />} />
                 {/* Admin access to all dashboards and forms */}
                 <Route path="/patients" element={<PatientsList />} />
                 <Route path="/predict" element={<RiskDashboard />} />

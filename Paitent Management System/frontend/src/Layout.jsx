@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useUser } from './UserContext'; // 1. import context
-import { BarChart3, ShieldCheck, Users, UserPlus, Activity, LineChart, Stethoscope, Settings, LogOut, MessageCircle, User as UserIcon, PanelLeft, PanelLeftClose, Bell, Calendar } from 'lucide-react';
+import { BarChart3, ShieldCheck, Users, UserPlus, Activity, LineChart, Stethoscope, Settings, LogOut, MessageCircle, User as UserIcon, PanelLeft, PanelLeftClose, Bell, Calendar, FileText } from 'lucide-react';
 
 function Layout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -106,6 +106,9 @@ function Layout({ children }) {
                 <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '80ms' : '0ms' }}>
                   <NavItem to="/admin/patients" icon={<Users size={18} />} label="Manage Patients" isOpen={isOpen} />
                 </li>
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '100ms' : '0ms' }}>
+                  <NavItem to="/admin/activity-logs" icon={<FileText size={18} />} label="Activity Logs" isOpen={isOpen} />
+                </li>
               </ul>
 
               {/* Functions Section */}
@@ -115,13 +118,13 @@ function Layout({ children }) {
                 </div>
               )}
               <ul className="space-y-1">
-                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '100ms' : '0ms' }}>
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '120ms' : '0ms' }}>
                   <NavItem to="/predict" icon={<BarChart3 size={18} />} label="Risk Dashboard" isOpen={isOpen} />
                 </li>
-                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '120ms' : '0ms' }}>
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '140ms' : '0ms' }}>
                   <NavItem to="/therapy-effectiveness" icon={<Activity size={18} />} label="Therapy Dashboard" isOpen={isOpen} />
                 </li>
-                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '140ms' : '0ms' }}>
+                <li className={`transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-0'}`} style={{ transitionDelay: isOpen ? '160ms' : '0ms' }}>
                   <NavItem to="/treatment-recommendation" icon={<Stethoscope size={18} />} label="Treatment Dashboard" isOpen={isOpen} />
                 </li>
               </ul>

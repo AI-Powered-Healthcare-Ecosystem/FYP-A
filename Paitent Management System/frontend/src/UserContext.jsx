@@ -14,10 +14,26 @@ export const UserProvider = ({ children }) => {
     localStorage.setItem('isAuthenticated', 'true');
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('isAuthenticated');
+  const logout = async () => {
+    try {
+      // Call backend logout endpoint
+      const laravelUrl = (import.meta.env.VITE_LARAVEL_URL || 'http://localhost:8000').replace(/\/$/, '');
+      await fetch(`${laravelUrl}/api/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local state and storage
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('isAuthenticated');
+      
+      // Redirect to login page
+      window.location.href = '/login';
+    }
   };
 
   return (

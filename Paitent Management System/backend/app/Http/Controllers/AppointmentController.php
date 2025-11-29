@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\User;
+use App\Helpers\ActivityLogger;
 
 class AppointmentController extends Controller
 {
@@ -84,6 +85,15 @@ class AppointmentController extends Controller
             'status' => 'nullable|string|max:30',
         ]);
         $appt = Appointment::create(array_merge(['status' => 'Scheduled'], $data));
+        
+        // Log activity
+        ActivityLogger::log(
+            'created',
+            "Created appointment for patient ID: {$data['patient_id']} on {$data['date']}",
+            'Appointment',
+            $appt->id
+        );
+        
         return response()->json(['message' => 'Created', 'data' => $appt], 201);
     }
 
@@ -100,14 +110,37 @@ class AppointmentController extends Controller
             'duration_minutes' => 'sometimes|nullable|integer|min:1',
             'status' => 'sometimes|nullable|string|max:30',
         ]);
+        $oldData = $appt->only(['date', 'time', 'status', 'type']);
         $appt->update($data);
+        
+        // Log activity
+        ActivityLogger::log(
+            'updated',
+            "Updated appointment for patient ID: {$appt->patient_id}",
+            'Appointment',
+            $appt->id,
+            ['before' => $oldData, 'after' => $appt->only(['date', 'time', 'status', 'type'])]
+        );
+        
         return response()->json(['message' => 'Updated', 'data' => $appt]);
     }
 
     public function destroy($id)
     {
         $appt = Appointment::findOrFail($id);
+        $patient = Patient::find($appt->patient_id);
+        $appointmentDate = $appt->date;
+        
         $appt->delete();
+        
+        // Log activity
+        ActivityLogger::log(
+            'deleted',
+            "Deleted appointment for patient ID: {$appt->patient_id} on {$appointmentDate}",
+            'Appointment',
+            $id
+        );
+        
         return response()->json(['message' => 'Deleted']);
     }
 

@@ -63,6 +63,8 @@ const TherapyEffectivenessForm = () => {
       }
 
       const payload = {
+        patient_id: patient.id,
+        patient_name: patient.name,
         insulin_regimen: String(patient.insulin_regimen_type || 'Unknown'),
         hba1c1: toNumber(patient.hba1c_1st_visit),
         hba1c2: toNumber(patient.hba1c_2nd_visit),

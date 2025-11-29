@@ -7,6 +7,7 @@ use App\Models\Patient;
 use App\Models\UserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use App\Helpers\ActivityLogger;
 
 class MessageController extends Controller
 {
@@ -141,6 +142,15 @@ class MessageController extends Controller
             ]);
         }
 
+        // Log activity
+        $senderRole = $data['sender_type'] === 'doctor' ? 'doctor' : 'patient';
+        ActivityLogger::log(
+            'created',
+            "Sent message to patient ID: {$patient->id} ({$senderRole})",
+            'Message',
+            $message->id
+        );
+
         return response()->json($message, 201);
     }
 
@@ -165,9 +175,21 @@ class MessageController extends Controller
         }
 
         // Optionally: authorize based on authenticated user here
+        $count = Message::where('patient_id', $patient->id)
+            ->where('doctor_id', $doctorId)
+            ->count();
+            
         Message::where('patient_id', $patient->id)
             ->where('doctor_id', $doctorId)
             ->delete();
+
+        // Log activity
+        ActivityLogger::log(
+            'deleted',
+            "Cleared message thread with patient ID: {$patient->id} ({$count} messages)",
+            'Message',
+            null
+        );
 
         return response()->json(['status' => 'ok']);
     }

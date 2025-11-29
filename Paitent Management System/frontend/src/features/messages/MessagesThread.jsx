@@ -18,7 +18,10 @@ export default function MessagesThread({ patientId: propPatientId }) {
 
   const fetchThread = async () => {
     try {
-      const res = await fetch(`${apiBase}/api/messages/thread/${patientId}`);
+      const res = await fetch(`${apiBase}/api/messages/thread/${patientId}`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
       // Mark messages from the other party as read
@@ -28,7 +31,11 @@ export default function MessagesThread({ patientId: propPatientId }) {
       );
       for (const m of unreadIncoming) {
         try {
-          await fetch(`${apiBase}/api/messages/${m.id}/read`, { method: 'PATCH' });
+          await fetch(`${apiBase}/api/messages/${m.id}/read`, {
+            method: 'PATCH',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+          });
         } catch (_) { /* non-blocking */ }
       }
     } catch (e) {
@@ -45,7 +52,11 @@ export default function MessagesThread({ patientId: propPatientId }) {
     if (!ok) return;
     try {
       setClearing(true);
-      const res = await fetch(`${apiBase}/api/messages/thread/${patientId}`, { method: 'DELETE' });
+      const res = await fetch(`${apiBase}/api/messages/thread/${patientId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
       if (!res.ok) throw new Error('clear failed');
       setItems([]);
     } catch (e) {
@@ -60,7 +71,10 @@ export default function MessagesThread({ patientId: propPatientId }) {
   const fetchHeader = async () => {
     try {
       if (user.role !== 'patient') return;
-      const res = await fetch(`${apiBase}/api/patients/${patientId}/doctor`);
+      const res = await fetch(`${apiBase}/api/patients/${patientId}/doctor`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
       if (!res.ok) return;
       const info = await res.json();
       const name = info?.name || info?.doctor?.name || 'Your Doctor';
@@ -85,7 +99,8 @@ export default function MessagesThread({ patientId: propPatientId }) {
       setSending(true);
       const res = await fetch(`${apiBase}/api/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ patient_id: patientId, sender_type: user.role === 'doctor' ? 'doctor' : 'patient', body: text })
       });
       if (!res.ok) throw new Error('send failed');

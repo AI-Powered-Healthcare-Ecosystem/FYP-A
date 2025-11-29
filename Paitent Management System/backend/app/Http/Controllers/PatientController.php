@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
 use App\Http\Resources\PatientResource;
+use App\Helpers\ActivityLogger;
 
 class PatientController extends Controller
 {
@@ -87,6 +88,14 @@ class PatientController extends Controller
         $patient->dds_trend_1_3 = ($dds1 !== null && $dds3 !== null) ? ($dds3 - $dds1) : null;
 
         $patient->save();
+
+        // Log activity
+        ActivityLogger::log(
+            'created',
+            "Created patient ID: {$patient->id}",
+            'Patient',
+            $patient->id
+        );
 
         return response()->json(['message' => 'Patient saved', 'data' => $patient], 201);
     }
@@ -194,6 +203,14 @@ class PatientController extends Controller
 
     $patient->save();
 
+    // Log activity
+    ActivityLogger::log(
+        'updated',
+        "Updated patient ID: {$patient->id}",
+        'Patient',
+        $patient->id
+    );
+
     return response()->json(['message' => 'Patient updated', 'data' => $patient], 200);
 }
 
@@ -235,8 +252,19 @@ class PatientController extends Controller
             'doctor_id' => 'nullable|integer|exists:users,id',
         ]);
         $patient = Patient::findOrFail($id);
+        $oldDoctorId = $patient->assigned_doctor_id;
         $patient->assigned_doctor_id = $validated['doctor_id'] ?? null;
         $patient->save();
+
+        // Log activity
+        ActivityLogger::log(
+            'updated',
+            "Assigned patient ID: {$patient->id} to doctor ID: {$validated['doctor_id']}",
+            'Patient',
+            $patient->id,
+            ['before' => ['doctor_id' => $oldDoctorId], 'after' => ['doctor_id' => $validated['doctor_id']]]
+        );
+
         return response()->json(['message' => 'Assignment updated', 'data' => $patient]);
     }
 
@@ -296,6 +324,7 @@ class PatientController extends Controller
     public function destroy($id)
 {
     $patient = Patient::findOrFail($id);
+    $patientName = $patient->name;
 
     // If patient is linked to a user, delete user too
     if ($patient->user_id) {
@@ -303,6 +332,14 @@ class PatientController extends Controller
     }
 
     $patient->delete();
+
+    // Log activity
+    ActivityLogger::log(
+        'deleted',
+        "Deleted patient ID: {$id}",
+        'Patient',
+        $id
+    );
 
     return response()->json(['message' => 'Patient and linked user deleted']);
 }
@@ -332,6 +369,14 @@ class PatientController extends Controller
         $patient->reduction_a_2_3 = ($hba1c2 !== null && $hba1c3 !== null) ? ($hba1c2 - $hba1c3) : null;
 
         $patient->save();
+
+        // Log activity
+        ActivityLogger::log(
+            'created',
+            "Saved risk prediction for patient ID: {$patient->id} (Score: {$data['score']}, Label: {$data['label']})",
+            'Patient',
+            $patient->id
+        );
 
         return response()->json(['message' => 'Risk saved', 'data' => $patient]);
     }

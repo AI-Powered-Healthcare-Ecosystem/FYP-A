@@ -8,6 +8,7 @@ use App\Models\Patient;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use App\Helpers\ActivityLogger;
 
 class AuthController extends Controller
 {
@@ -42,6 +43,14 @@ if ($validated['role'] === 'patient') {
 
 
 
+    // Log activity
+    ActivityLogger::log(
+        'created',
+        "User registered ID: {$user->id} ({$user->role})",
+        'User',
+        $user->id
+    );
+
     return response()->json([
         'message' => 'Registration successful',
         'user' => [
@@ -64,6 +73,14 @@ public function login(Request $request)
 
     $user = Auth::user();
 
+    // Log activity
+    ActivityLogger::log(
+        'login',
+        "User logged in ID: {$user->id} ({$user->role})",
+        'User',
+        $user->id
+    );
+
     return response()->json([
         'message' => 'Login successful',
         'user' => [
@@ -72,6 +89,27 @@ public function login(Request $request)
             'role' => $user->role,
         ]
     ]);
+}
+
+public function logout(Request $request)
+{
+    $user = Auth::user();
+    
+    if ($user) {
+        // Log activity before logout
+        ActivityLogger::log(
+            'logout',
+            "User logged out ID: {$user->id} ({$user->role})",
+            'User',
+            $user->id
+        );
+    }
+    
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    
+    return response()->json(['message' => 'Logged out successfully']);
 }
 
 }

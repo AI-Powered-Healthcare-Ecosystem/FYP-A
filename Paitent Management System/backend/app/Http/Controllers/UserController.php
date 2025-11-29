@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Helpers\ActivityLogger;
 
 class UserController extends Controller
 {
@@ -49,7 +50,17 @@ class UserController extends Controller
             'role' => 'sometimes|in:admin,doctor,patient',
         ]);
 
+        $oldData = $user->only(['name', 'email', 'role']);
         $user->update($validated);
+
+        // Log activity
+        ActivityLogger::log(
+            'updated',
+            "Updated user ID: {$user->id}",
+            'User',
+            $user->id,
+            ['before' => $oldData, 'after' => $user->only(['name', 'email', 'role'])]
+        );
 
         return response()->json(['message' => 'User updated successfully', 'data' => $user], 200);
     }
@@ -58,12 +69,22 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
+        $userName = $user->name;
+        $userRole = $user->role;
 
         // If this user is a patient, delete the patient row too
         if ($user->role === 'patient' && $user->patient) {
             $user->patient->delete();
         }
         $user->delete();
+
+        // Log activity
+        ActivityLogger::log(
+            'deleted',
+            "Deleted user ID: {$id}",
+            'User',
+            $id
+        );
 
         return response()->json(['message' => 'User deleted successfully'], 200);
     }

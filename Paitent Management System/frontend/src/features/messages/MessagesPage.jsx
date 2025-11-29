@@ -26,7 +26,10 @@ export default function MessagesPage() {
     try {
       if (!initDone) setLoading(true);
       const url = `${apiBase}/api/messages/conversations?user_id=${user.id}&role=${user.role}`;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
       const data = await res.json();
       if (Array.isArray(data)) {
         // Build a lightweight signature to avoid unnecessary re-renders
@@ -68,7 +71,10 @@ export default function MessagesPage() {
     const run = async () => {
       try {
         setPatientResolving(true);
-        const res = await fetch(`${apiBase}/api/patients/by-user/${user.id}`);
+        const res = await fetch(`${apiBase}/api/patients/by-user/${user.id}`, {
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
         if (!res.ok) return;
         const p = await res.json();
         if (cancelled) return;
