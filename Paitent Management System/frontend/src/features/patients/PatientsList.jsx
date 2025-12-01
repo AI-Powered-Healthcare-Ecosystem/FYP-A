@@ -162,6 +162,15 @@ const PatientsList = ({ hideHeader = false }) => {
     setCurrentPage(1);
   }, [statusFilter, insulinFilter, genderFilter, pageSize, searchTerm]);
 
+  // For HbA1c drops: positive = good (HbA1c decreased), negative = bad (HbA1c increased)
+  const formatHbA1cTrend = (val, decimals = 0) => {
+    if (val == null) return '-';
+    const num = parseFloat(val);
+    const color = num > 0 ? 'text-green-600' : num < 0 ? 'text-red-500' : 'text-yellow-500';
+    return <span className={`font-semibold ${color}`}>{num.toFixed(decimals)}</span>;
+  };
+
+  // For other metrics: negative = good (decreased), positive = bad (increased)
   const formatTrend = (val, decimals = 0) => {
     if (val == null) return '-';
     const num = parseFloat(val);
@@ -477,9 +486,9 @@ const PatientsList = ({ hideHeader = false }) => {
                     <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_1st_visit ? Number(p.hba1c_1st_visit).toFixed(2) : '-'}</td>
                     <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_2nd_visit ? Number(p.hba1c_2nd_visit).toFixed(2) : '-'}</td>
                     <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_3rd_visit ? Number(p.hba1c_3rd_visit).toFixed(2) : '-'}</td>
-                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatTrend(p.reduction_a)}</td>
-                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatTrend(p.reduction_a_2_3)}</td>
-                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatTrend(p.reduction_a_per_day, 2)}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatHbA1cTrend(p.reduction_a)}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatHbA1cTrend(p.reduction_a_2_3)}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatHbA1cTrend(p.reduction_a_per_day, 2)}</td>
                     {/* FVG Group - Blue */}
                     <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.fvg_1 ? Number(p.fvg_1).toFixed(1) : '-'}</td>
                     <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.fvg_2 ? Number(p.fvg_2).toFixed(1) : '-'}</td>
@@ -591,9 +600,9 @@ const StatusBadge = ({ status }) => {
   const tooltipContent = {
     title: 'Status Criteria',
     items: [
-      { level: 'Improving', condition: 'HbA1c drop >1.0 OR FVG drop <-1.0' },
-      { level: 'Worsening', condition: 'HbA1c drop <0 OR FVG rise >1.0' },
-      { level: 'Needs Review', condition: 'DDS trend >1' },
+      { level: 'Improving', condition: 'HbA1c drop (2nd→3rd) >1.0 OR FVG delta (1st→2nd) <-1.0' },
+      { level: 'Worsening', condition: 'HbA1c drop (2nd→3rd) <0 OR FVG delta (1st→2nd) >1.0' },
+      { level: 'Needs Review', condition: 'DDS trend (1st→3rd) >1' },
       { level: 'Stable', condition: 'Otherwise' }
     ]
   };
