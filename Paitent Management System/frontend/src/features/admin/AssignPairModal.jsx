@@ -120,6 +120,22 @@ export default function AssignPairModal({ open, onClose, onAssigned, preselectPa
     }
   };
 
+  const unassign = async () => {
+    if (!selectedPatient?.id) return;
+    if (!window.confirm(`Unassign doctor from ${selectedPatient.name}?`)) return;
+    try {
+      setAssigning(true);
+      await patientsApi.assignDoctor(selectedPatient.id, null);
+      onAssigned?.({ patientId: selectedPatient.id, doctorId: null });
+      onClose?.();
+    } catch (e) {
+      console.error('Unassign failed', e);
+      alert('Failed to unassign doctor');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -238,6 +254,13 @@ export default function AssignPairModal({ open, onClose, onAssigned, preselectPa
           </div>
           <div className="flex gap-2">
             <button className="px-3 py-2 rounded-md border" onClick={onClose} disabled={assigning}>Cancel</button>
+            {selectedPatient?.id && (
+              <button
+                className="px-3 py-2 rounded-md border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                disabled={assigning}
+                onClick={unassign}
+              >Unassign</button>
+            )}
             <button
               className="px-3 py-2 rounded-md bg-emerald-600 text-white disabled:opacity-50"
               disabled={!selectedPatient?.id || !selectedDoctor?.id || assigning}

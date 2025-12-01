@@ -486,15 +486,15 @@ const PatientsList = ({ hideHeader = false }) => {
                     <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_1st_visit ? Number(p.hba1c_1st_visit).toFixed(2) : '-'}</td>
                     <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_2nd_visit ? Number(p.hba1c_2nd_visit).toFixed(2) : '-'}</td>
                     <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{p.hba1c_3rd_visit ? Number(p.hba1c_3rd_visit).toFixed(2) : '-'}</td>
-                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatHbA1cTrend(p.reduction_a)}</td>
-                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatHbA1cTrend(p.reduction_a_2_3)}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatHbA1cTrend(p.reduction_a, 2)}</td>
+                    <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatHbA1cTrend(p.reduction_a_2_3, 2)}</td>
                     <td className="px-4 py-2.5 bg-rose-50/50 border-r border-slate-200">{formatHbA1cTrend(p.reduction_a_per_day, 2)}</td>
                     {/* FVG Group - Blue */}
                     <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.fvg_1 ? Number(p.fvg_1).toFixed(1) : '-'}</td>
                     <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.fvg_2 ? Number(p.fvg_2).toFixed(1) : '-'}</td>
                     <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.fvg_3 ? Number(p.fvg_3).toFixed(1) : '-'}</td>
                     <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{p.avg_fvg_1_2 ?? '-'}</td>
-                    <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{formatTrend(p.fvg_delta_1_2)}</td>
+                    <td className="px-4 py-2.5 bg-blue-50/50 border-r border-slate-200">{formatTrend(p.fvg_delta_1_2, 2)}</td>
                     {/* Weight/BMI Group - Amber */}
                     <td className="px-4 py-2.5 bg-amber-50/50 border-r border-slate-200">{p.weight1 ? Number(p.weight1).toFixed(1) : '-'}</td>
                     <td className="px-4 py-2.5 bg-amber-50/50 border-r border-slate-200">{p.weight2 ? Number(p.weight2).toFixed(1) : '-'}</td>
