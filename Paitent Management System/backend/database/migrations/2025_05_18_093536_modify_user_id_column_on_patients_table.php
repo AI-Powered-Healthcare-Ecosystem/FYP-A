@@ -9,7 +9,12 @@ class ModifyUserIdColumnOnPatientsTable extends Migration
 {
     public function up()
     {
-        // Drop the existing unique index manually
+        // Skip entirely in testing environment (SQLite handles this differently)
+        if (app()->environment('testing')) {
+            return;
+        }
+
+        // Drop the existing unique index manually (MySQL)
         DB::statement('ALTER TABLE patients DROP INDEX patients_user_id_unique');
 
         // Then modify the user_id column to be nullable and unique

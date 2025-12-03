@@ -5,6 +5,8 @@ import { useUser } from '@/UserContext.jsx';
 import { patientsApi } from '../../api/patients';
 import Card from '../../components/Card.jsx';
 import AssignPairModal from '../admin/AssignPairModal.jsx';
+import { getStatusTag } from '../../utils/patientStatus';
+import { formatHbA1cTrend, formatTrend } from '../../utils/formatters';
 
 const PatientsList = ({ hideHeader = false }) => {
   const [patients, setPatients] = useState([]);
@@ -162,42 +164,8 @@ const PatientsList = ({ hideHeader = false }) => {
     setCurrentPage(1);
   }, [statusFilter, insulinFilter, genderFilter, pageSize, searchTerm]);
 
-  // For HbA1c drops: positive = good (HbA1c decreased), negative = bad (HbA1c increased)
-  const formatHbA1cTrend = (val, decimals = 0) => {
-    if (val == null) return '-';
-    const num = parseFloat(val);
-    const color = num > 0 ? 'text-green-600' : num < 0 ? 'text-red-500' : 'text-yellow-500';
-    return <span className={`font-semibold ${color}`}>{num.toFixed(decimals)}</span>;
-  };
-
-  // For other metrics: negative = good (decreased), positive = bad (increased)
-  const formatTrend = (val, decimals = 0) => {
-    if (val == null) return '-';
-    const num = parseFloat(val);
-    const color = num > 0 ? 'text-red-500' : num < 0 ? 'text-green-600' : 'text-yellow-500';
-    return <span className={`font-semibold ${color}`}>{num.toFixed(decimals)}</span>;
-  };
-
+  // Utility functions now imported from utils folder
   const formatGap = (days) => (days != null ? `${Math.round(days)} days` : '-');
-
-  const getStatusTag = (p) => {
-    const hbDrop = p.reduction_a_2_3 ?? null;
-    const fvgDelta = p.fvg_delta_1_2 ?? null;
-    const ddsTrend = p.dds_trend_1_3 ?? null;
-
-    if (hbDrop !== null) {
-      if (hbDrop > 1.0) return 'Improving';
-      if (hbDrop < 0) return 'Worsening';
-    }
-    if (fvgDelta !== null) {
-      if (fvgDelta < -1.0) return 'Improving';
-      if (fvgDelta > 1.0) return 'Worsening';
-    }
-    if (ddsTrend !== null && ddsTrend > 1) {
-      return 'Needs Review';
-    }
-    return 'Stable';
-  };
 
   const insulinColors = {
     BB: 'bg-teal-100 text-teal-700',

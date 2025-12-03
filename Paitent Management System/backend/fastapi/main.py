@@ -663,29 +663,17 @@ async def treatment_chat(request: Request):
         patient = body["patient"]
         question = body["question"]
 
-        # Build patient context
-        patient_context = f"""Patient Information:
-        - Name: {patient.get('name', 'N/A')}
-        - Age: {patient.get('age', 'N/A')} years
-        - Gender: {patient.get('gender', 'N/A')}
-        - HbA1c (1st visit): {patient.get('hba1c_1st_visit', 'N/A')}%
-        - HbA1c (2nd visit): {patient.get('hba1c_2nd_visit', 'N/A')}%
-        - HbA1c (3rd visit): {patient.get('hba1c_3rd_visit', 'N/A')}%
-        - FVG (1st): {patient.get('fvg_1', 'N/A')} mmol/L
-        - FVG (2nd): {patient.get('fvg_2', 'N/A')} mmol/L
-        - Insulin Regimen: {patient.get('insulin_regimen_type', 'N/A')}
-        - DDS (1st): {patient.get('dds_1', 'N/A')}
-        - DDS (3rd): {patient.get('dds_3', 'N/A')}
-        - Freq SMBG: {patient.get('freq_smbg', 'N/A')} checks/month
-        - Medical History: {patient.get('medical_history', 'N/A')}
-        - Current Medications: {patient.get('medications', 'N/A')}
-        """
+        # Put question FIRST, then patient context (this helps the classifier recognize it as a medical question)
+        full_input = f"""{question}
 
-        # Combine patient context with user question
-        full_input = f"""{patient_context}
-
-        User Question: {question} 
-        """
+Patient: {patient.get('name', 'N/A')}, {patient.get('age', 'N/A')} years old, {patient.get('gender', 'N/A')}
+Current HbA1c: Visit 1: {patient.get('hba1c_1st_visit', 'N/A')}%, Visit 2: {patient.get('hba1c_2nd_visit', 'N/A')}%, Visit 3: {patient.get('hba1c_3rd_visit', 'N/A')}%
+FVG: Visit 1: {patient.get('fvg_1', 'N/A')} mmol/L, Visit 2: {patient.get('fvg_2', 'N/A')} mmol/L
+DDS: Visit 1: {patient.get('dds_1', 'N/A')}, Visit 3: {patient.get('dds_3', 'N/A')}
+Insulin Regimen: {patient.get('insulin_regimen_type', 'N/A')}
+SMBG Frequency: {patient.get('freq_smbg', 'N/A')} checks/month
+Current Medications: {patient.get('medications', 'N/A')}
+Medical History: {patient.get('medical_history', 'N/A')}"""
 
         # Call Langflow API (SAME URL as treatment-recommendation)
         langflow_url = "https://host-langflow.delightfulflower-50ef0bcd.westus2.azurecontainerapps.io/api/v1/run/6c9b582f-d64a-44de-add3-b075a051dccc"
@@ -714,6 +702,8 @@ async def treatment_chat(request: Request):
         logging.info("="*80)
         logging.info(f"TREATMENT CHAT - Langflow API Call")
         logging.info(f"Session ID: {payload['session_id']}")
+        logging.info(f"Input being sent to Langflow:")
+        logging.info(f"{full_input}")
         logging.info("="*80)
         
         langflow_response = requests.post(langflow_url, json=payload, headers=headers, timeout=90)
@@ -725,6 +715,12 @@ async def treatment_chat(request: Request):
         langflow_response.raise_for_status()
         
         result = langflow_response.json()
+        
+        # Log full response for debugging
+        logging.info("="*80)
+        logging.info(f"FULL LANGFLOW RESPONSE:")
+        logging.info(f"{result}")
+        logging.info("="*80)
         
         # Extract response from Langflow output
         response_text = result.get("outputs", [{}])[0].get("outputs", [{}])[0].get("results", {}).get("message", {}).get("text", "No response generated")
